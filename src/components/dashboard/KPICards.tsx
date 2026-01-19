@@ -34,7 +34,7 @@ function KPICard({ title, value, variation, colorType, rawValue, icon }: KPICard
       case 'roas':
         if (rawValue === undefined) return 'text-foreground';
         const roasColor = getROASColor(rawValue);
-        return roasColor === 'success' ? 'text-success' : roasColor === 'warning' ? 'text-warning' : 'text-destructive';
+        return roasColor === 'success' ? 'text-success' : 'text-destructive';
       default:
         return 'text-foreground';
     }
