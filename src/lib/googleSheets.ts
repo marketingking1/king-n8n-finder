@@ -1,6 +1,7 @@
 const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 const SPREADSHEET_ID = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
-const SHEET_NAME = 'tabela_objetivo';
+const SHEET_NAME_OBJETIVO = 'tabela_objetivo';
+const SHEET_NAME_MACRO = 'Dados_macro_vendas';
 
 export interface SheetsMarketingRow {
   canal: string;
@@ -29,9 +30,22 @@ function parseNumber(value: string | undefined | null): number {
   return parseFloat(cleaned) || 0;
 }
 
+// Macro data interface for Dados_macro_vendas
+export interface MacroSheetsRow {
+  data: string;
+  vendas: number;
+  leads: number;
+}
+
+export interface MacroSheetsData {
+  rows: MacroSheetsRow[];
+  totalVendas: number;
+  totalLeads: number;
+}
+
+// Fetch data from tabela_objetivo (mídia paga - investment/costs)
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
-  // Fetch all data from A:L (headers in row 1, data from row 2)
-  const range = `${SHEET_NAME}!A:L`;
+  const range = `${SHEET_NAME_OBJETIVO}!A:L`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   try {
@@ -46,10 +60,9 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     const data = await response.json();
     const values: string[][] = data.values || [];
     
-    // Skip header row (index 0) and filter out "summary" rows (rows 2-4 with "google"(), "facebook"(), "linkedin"())
+    // Skip header row and filter out summary rows
     const dataRows = values.slice(1).filter(row => {
       const canal = row[0] || '';
-      // Skip rows that look like summary rows or empty
       return canal && !canal.includes('()') && row.length >= 6;
     });
 
@@ -66,7 +79,7 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
       receita: parseNumber(row[9]),
     }));
 
-    // Calculate totals
+    // Note: vendas/leads totals here are from tracked paid media only
     const vendas = rows.reduce((sum, row) => sum + row.conversoes, 0);
     const leads = rows.reduce((sum, row) => sum + row.leads, 0);
     const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
@@ -76,6 +89,57 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     console.error('Error fetching Google Sheets data:', error);
     throw error;
   }
+}
+
+// Fetch data from Dados_macro_vendas (ALL sales - organic + paid)
+export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
+  const range = `${SHEET_NAME_MACRO}!A:C`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
+
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google Sheets API error (macro):', errorData);
+      throw new Error(`Failed to fetch macro data: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const values: string[][] = data.values || [];
+    
+    // Skip header row
+    const dataRows = values.slice(1).filter(row => row.length >= 3 && row[0]);
+
+    const rows: MacroSheetsRow[] = dataRows.map(row => ({
+      data: row[0] || '',
+      vendas: parseNumber(row[1]),
+      leads: parseNumber(row[2]),
+    }));
+
+    const totalVendas = rows.reduce((sum, row) => sum + row.vendas, 0);
+    const totalLeads = rows.reduce((sum, row) => sum + row.leads, 0);
+
+    return { rows, totalVendas, totalLeads };
+  } catch (error) {
+    console.error('Error fetching macro sheets data:', error);
+    throw error;
+  }
+}
+
+// Filter macro data by date range
+export function filterMacroByDateRange(
+  rows: MacroSheetsRow[],
+  from: Date | undefined,
+  to: Date | undefined
+): MacroSheetsRow[] {
+  return rows.filter(row => {
+    if (!row.data) return false;
+    const rowDate = new Date(row.data);
+    if (from && rowDate < from) return false;
+    if (to && rowDate > to) return false;
+    return true;
+  });
 }
 
 // Filter data by date range
