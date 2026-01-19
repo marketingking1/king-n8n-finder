@@ -124,7 +124,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_marketing_data: {
+        Row: {
+          campanha: string | null
+          canal: string | null
+          cliques: number | null
+          conversoes: number | null
+          data: string | null
+          grupo_anuncio: string | null
+          impressoes: number | null
+          investimento: number | null
+          leads: number | null
+          receita: number | null
+        }
+        Insert: {
+          campanha?: string | null
+          canal?: string | null
+          cliques?: never
+          conversoes?: never
+          data?: never
+          grupo_anuncio?: string | null
+          impressoes?: never
+          investimento?: never
+          leads?: never
+          receita?: never
+        }
+        Update: {
+          campanha?: string | null
+          canal?: string | null
+          cliques?: never
+          conversoes?: never
+          data?: never
+          grupo_anuncio?: string | null
+          impressoes?: never
+          investimento?: never
+          leads?: never
+          receita?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
