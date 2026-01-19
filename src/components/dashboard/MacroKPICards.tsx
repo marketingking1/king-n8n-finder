@@ -140,15 +140,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   const roas = investimento > 0 ? receita / investimento : 0;
   const taxaConversao = sheetsData?.taxaConversao || 0;
 
-  // Previous period calculations (simplified - using same sheets data for now)
-  const prevInvestimento = previousMetrics?.investimento || 0;
-  const prevVendas = vendas; // Future: get from historical sheets data
-  const prevReceita = prevVendas * TICKET_MEDIO;
-  const prevCpa = prevVendas > 0 ? prevInvestimento / prevVendas : 0;
-  const prevRoas = prevInvestimento > 0 ? prevReceita / prevInvestimento : 0;
-
-  const cpaVariation = calculateVariation(cpa, prevCpa);
-  const roasVariation = calculateVariation(roas, prevRoas);
+  // Não mostrar variação de CPA e ROAS pois não temos dados históricos do Sheets
 
   if (isLoading) {
     return (
@@ -187,7 +179,6 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="CPA"
           value={formatCurrency(cpa)}
-          variation={cpaVariation}
           colorType="cpa"
           rawValue={cpa}
           invertVariation={true}
@@ -196,7 +187,6 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="ROAS"
           value={formatROAS(roas)}
-          variation={roasVariation}
           colorType="roas"
           rawValue={roas}
           icon={<BarChart3 className="h-6 w-6" />}
