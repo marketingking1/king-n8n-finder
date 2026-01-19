@@ -56,11 +56,16 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         chart: {
+          magenta: "hsl(var(--chart-magenta))",
+          pink: "hsl(var(--chart-pink))",
+          purple: "hsl(var(--chart-purple))",
           blue: "hsl(var(--chart-blue))",
           green: "hsl(var(--chart-green))",
           orange: "hsl(var(--chart-orange))",
-          red: "hsl(var(--chart-red))",
-          purple: "hsl(var(--chart-purple))",
+        },
+        glow: {
+          primary: "hsl(var(--glow-primary))",
+          secondary: "hsl(var(--glow-secondary))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -95,10 +100,19 @@ export default {
             height: "0",
           },
         },
+        "glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 20px -5px hsl(var(--glow-primary) / 0.3)",
+          },
+          "50%": {
+            boxShadow: "0 0 30px -5px hsl(var(--glow-primary) / 0.5)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite",
       },
     },
   },

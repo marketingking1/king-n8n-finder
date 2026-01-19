@@ -87,8 +87,11 @@ export function groupByTime(data: MarketingData[], granularity: Granularity): Ti
       return {
         data,
         investimento: metrics.investimento,
-        receita: metrics.receita,
+        impressoes: metrics.impressoes,
+        cliques: metrics.cliques,
+        leads: metrics.leads,
         conversoes: metrics.conversoes,
+        receita: metrics.receita,
         roas: metrics.roas,
       };
     })
