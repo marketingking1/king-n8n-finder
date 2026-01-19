@@ -17,6 +17,7 @@ export interface MacroMetrics {
   leads: number;
   conversoes: number;
   ctr: number;
+  custoVendedor: number;
 }
 
 // Calculate investment/impressions/clicks from tabela_objetivo (paid media only)
@@ -80,6 +81,7 @@ export function useMacroData() {
       leads: macroData.totalLeads,
       conversoes: macroData.totalVendas,
       receita: 0, // Will be calculated in component with TICKET_MEDIO
+      custoVendedor: macroData.custoVendedor,
     };
   }, [sheetsData, macroData, currentMonthStart, currentMonthEnd]);
 
@@ -101,6 +103,7 @@ export function useMacroData() {
       leads: 0,
       conversoes: 0,
       receita: 0,
+      custoVendedor: 0,
     };
   }, [sheetsData, hasPreviousData, previousMonthStart, previousMonthEnd]);
 
