@@ -137,6 +137,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   const vendas = currentMetrics?.conversoes || 0;
   const leads = currentMetrics?.leads || 0;
   const investimento = currentMetrics?.investimento || 0;
+  const custoVendedor = currentMetrics?.custoVendedor || 0;
   
   // Receita calculada: Vendas × Ticket Médio
   const receita = vendas * TICKET_MEDIO;
@@ -144,6 +145,9 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   const cpa = vendas > 0 ? investimento / vendas : 0;
   const roas = investimento > 0 ? receita / investimento : 0;
   const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
+  
+  // CAC Projetado = Custo do Vendedor + CPA
+  const cacProjetado = custoVendedor + cpa;
 
   // Calculate CPA and ROAS variation
   const prevVendas = previousMetrics?.conversoes || 0;
@@ -179,7 +183,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   return (
     <div className="space-y-4">
       {/* Main KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <MainKPICard
           title="Investimento Total"
           value={formatCurrency(investimento)}
@@ -202,6 +206,13 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           rawValue={cpa}
           invertVariation={true}
           icon={<Target className="h-6 w-6" />}
+        />
+        <MainKPICard
+          title="CAC Projetado"
+          value={formatCurrency(cacProjetado)}
+          colorType="cpa"
+          rawValue={cacProjetado}
+          icon={<Wallet className="h-6 w-6" />}
         />
         <MainKPICard
           title="ROAS"
