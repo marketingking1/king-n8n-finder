@@ -123,7 +123,8 @@ export default function Dashboard() {
             <KPICards metrics={metrics} variations={variations} />
             <TrendCharts 
               timeSeriesData={timeSeriesData} 
-              funnelData={funnelData} 
+              funnelData={funnelData}
+              campaignMetrics={campaignMetrics}
             />
             <CampaignTable 
               data={campaignMetrics} 

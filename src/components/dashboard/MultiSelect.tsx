@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface MultiSelectProps {
@@ -36,25 +35,25 @@ export function MultiSelect({ options, selected, onChange, placeholder }: MultiS
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="min-w-[150px] justify-between"
+          className="min-w-[160px] justify-between border-border/50 hover:border-primary/50 hover:bg-primary/5"
         >
-          <span className="truncate">
+          <span className="truncate text-sm">
             {selected.length === 0 ? placeholder : `${placeholder} (${selected.length})`}
           </span>
           <div className="flex items-center gap-1 ml-2">
             {selected.length > 0 && (
               <X 
-                className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100" 
+                className="h-3.5 w-3.5 shrink-0 opacity-50 hover:opacity-100 hover:text-destructive" 
                 onClick={handleClear}
               />
             )}
-            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
+      <PopoverContent className="w-[280px] p-0 bg-card border-border">
         <Command>
-          <CommandInput placeholder={`Buscar ${placeholder.toLowerCase()}...`} />
+          <CommandInput placeholder={`Buscar ${placeholder.toLowerCase()}...`} className="text-sm" />
           <CommandList>
             <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
             <CommandGroup>
@@ -63,14 +62,19 @@ export function MultiSelect({ options, selected, onChange, placeholder }: MultiS
                   key={option}
                   value={option}
                   onSelect={() => handleSelect(option)}
+                  className="cursor-pointer"
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selected.includes(option) ? "opacity-100" : "opacity-0"
+                  <div className={cn(
+                    "mr-2 h-4 w-4 rounded border flex items-center justify-center",
+                    selected.includes(option) 
+                      ? "bg-primary border-primary" 
+                      : "border-muted-foreground/30"
+                  )}>
+                    {selected.includes(option) && (
+                      <Check className="h-3 w-3 text-primary-foreground" />
                     )}
-                  />
-                  <span className="truncate">{option}</span>
+                  </div>
+                  <span className="truncate text-sm">{option}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

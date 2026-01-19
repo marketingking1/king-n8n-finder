@@ -4,7 +4,6 @@ import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FilterState, Granularity, DateRange } from '@/types/dashboard';
 import { MultiSelect } from './MultiSelect';
 import { cn } from '@/lib/utils';
@@ -32,19 +31,25 @@ export function FilterBar({
   onGruposChange,
   onCanaisChange,
 }: FilterBarProps) {
+  const granularityOptions: { value: Granularity; label: string }[] = [
+    { value: 'day', label: 'Dia' },
+    { value: 'week', label: 'Semana' },
+    { value: 'month', label: 'Mês' },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="flex flex-wrap items-center gap-3">
       {/* Date Range Picker */}
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "justify-start text-left font-normal min-w-[240px]",
+              "justify-start text-left font-normal min-w-[220px] border-border/50 hover:border-primary/50 hover:bg-primary/5",
               !filters.dateRange.from && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
             {filters.dateRange.from ? (
               filters.dateRange.to ? (
                 <>
@@ -55,11 +60,11 @@ export function FilterBar({
                 format(filters.dateRange.from, "dd/MM/yyyy", { locale: ptBR })
               )
             ) : (
-              <span>Selecionar período</span>
+              <span>Select date range</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
           <Calendar
             initialFocus
             mode="range"
@@ -72,38 +77,19 @@ export function FilterBar({
         </PopoverContent>
       </Popover>
 
-      {/* Granularity */}
-      <Tabs 
-        value={filters.granularity} 
-        onValueChange={(v) => onGranularityChange(v as Granularity)}
-      >
-        <TabsList>
-          <TabsTrigger value="day">Dia</TabsTrigger>
-          <TabsTrigger value="week">Semana</TabsTrigger>
-          <TabsTrigger value="month">Mês</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Multi-selects */}
+      {/* Multi-selects with improved styling */}
       <MultiSelect
         options={filterOptions.campanhas}
         selected={filters.campanhas}
         onChange={onCampanhasChange}
-        placeholder="Campanhas"
+        placeholder="Campanha"
       />
 
       <MultiSelect
         options={filterOptions.grupos}
         selected={filters.grupos}
         onChange={onGruposChange}
-        placeholder="Grupos"
-      />
-
-      <MultiSelect
-        options={filterOptions.canais}
-        selected={filters.canais}
-        onChange={onCanaisChange}
-        placeholder="Canais"
+        placeholder="Grupo de anúncio"
       />
     </div>
   );

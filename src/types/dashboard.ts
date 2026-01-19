@@ -38,8 +38,11 @@ export interface GroupMetrics extends AggregatedMetrics {
 export interface TimeSeriesData {
   data: string;
   investimento: number;
-  receita: number;
+  impressoes: number;
+  cliques: number;
+  leads: number;
   conversoes: number;
+  receita: number;
   roas: number;
 }
 
