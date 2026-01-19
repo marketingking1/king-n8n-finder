@@ -3,12 +3,13 @@ const SPREADSHEET_ID = '1FLAmZ4rL2OmxABfIyiPSl9UTgmsC4zc8m039c175ix4';
 const SHEET_NAME = 'Dados_macro_vendas';
 
 export interface GoogleSheetsData {
-  leads: number;
   vendas: number;
+  leads: number;
+  taxaConversao: number;
 }
 
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
-  const range = `${SHEET_NAME}!A:Z`;
+  const range = `${SHEET_NAME}!A2:B2`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   try {
@@ -21,32 +22,14 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     }
 
     const data = await response.json();
-    const rows = data.values || [];
+    const values = data.values?.[0] || [];
 
-    if (rows.length < 2) {
-      return { leads: 0, vendas: 0 };
-    }
+    // A2 = Vendas totais, B2 = Leads totais
+    const vendas = parseFloat(String(values[0] || '0').replace(/[^\d.-]/g, '')) || 0;
+    const leads = parseFloat(String(values[1] || '0').replace(/[^\d.-]/g, '')) || 0;
+    const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
 
-    // Find header indices
-    const headers = rows[0].map((h: string) => h?.toLowerCase?.() || '');
-    const leadsIndex = headers.findIndex((h: string) => h.includes('lead'));
-    const vendasIndex = headers.findIndex((h: string) => h.includes('venda'));
-
-    // Sum all values from data rows
-    let totalLeads = 0;
-    let totalVendas = 0;
-
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (leadsIndex >= 0 && row[leadsIndex]) {
-        totalLeads += parseFloat(String(row[leadsIndex]).replace(/[^\d.-]/g, '')) || 0;
-      }
-      if (vendasIndex >= 0 && row[vendasIndex]) {
-        totalVendas += parseFloat(String(row[vendasIndex]).replace(/[^\d.-]/g, '')) || 0;
-      }
-    }
-
-    return { leads: totalLeads, vendas: totalVendas };
+    return { vendas, leads, taxaConversao };
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error);
     throw error;
