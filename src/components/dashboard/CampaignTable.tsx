@@ -175,7 +175,6 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
                           <TableCell className={cn(
                             'font-medium',
                             roasColor === 'success' && 'text-success',
-                            roasColor === 'warning' && 'text-warning',
                             roasColor === 'destructive' && 'text-destructive'
                           )}>
                             {formatROAS(row.roas)}
@@ -204,7 +203,6 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
                               <TableCell>{formatCurrency(group.receita)}</TableCell>
                               <TableCell className={cn(
                                 getROASColor(group.roas) === 'success' && 'text-success',
-                                getROASColor(group.roas) === 'warning' && 'text-warning',
                                 getROASColor(group.roas) === 'destructive' && 'text-destructive'
                               )}>
                                 {formatROAS(group.roas)}

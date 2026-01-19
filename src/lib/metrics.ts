@@ -114,9 +114,8 @@ export function calculateVariation(current: number, previous: number): number {
   return ((current - previous) / previous) * 100;
 }
 
-export function getROASColor(roas: number): 'success' | 'warning' | 'destructive' {
-  if (roas >= 1.5) return 'success';
-  if (roas >= 1.3) return 'warning';
+export function getROASColor(roas: number): 'success' | 'destructive' {
+  if (roas >= 1) return 'success';
   return 'destructive';
 }
 
