@@ -6,8 +6,6 @@ import { useGoogleSheetsData } from './useGoogleSheetsData';
 import { 
   fetchMacroSheetsData, 
   filterByDateRange, 
-  filterMacroByDateRange,
-  MacroSheetsRow,
   SheetsMarketingRow 
 } from '@/lib/googleSheets';
 
@@ -38,22 +36,11 @@ function calculateInvestmentMetrics(rows: SheetsMarketingRow[]) {
   };
 }
 
-// Calculate sales/leads from Dados_macro_vendas (all business data)
-function calculateVolumeMetrics(rows: MacroSheetsRow[]) {
-  return rows.reduce(
-    (acc, row) => ({
-      vendas: acc.vendas + row.vendas,
-      leads: acc.leads + row.leads,
-    }),
-    { vendas: 0, leads: 0 }
-  );
-}
-
 export function useMacroData() {
   // Data from tabela_objetivo (paid media - investment, impressions, clicks)
   const { data: sheetsData, isLoading: isLoadingSheets, error: sheetsError } = useGoogleSheetsData();
   
-  // Data from Dados_macro_vendas (all business - sales, leads)
+  // Data from Dados_macro_vendas (all business - total sales, leads for the month)
   const { data: macroData, isLoading: isLoadingMacro, error: macroError } = useQuery({
     queryKey: ['macro-sheets-data'],
     queryFn: fetchMacroSheetsData,
@@ -63,7 +50,7 @@ export function useMacroData() {
   const today = new Date();
   const currentDay = getDate(today);
   
-  // Current month: from 1st to today (mínimo 2026-01-01)
+  // Current month: from 1st to today (minimum 2026-01-01)
   const currentMonthStart = startOfMonth(today) < MIN_DATE ? MIN_DATE : startOfMonth(today);
   const currentMonthEnd = today;
   
@@ -83,45 +70,39 @@ export function useMacroData() {
     const filteredSheets = filterByDateRange(sheetsData.rows, currentMonthStart, currentMonthEnd);
     const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
     
-    // Volume metrics from Dados_macro_vendas (all business)
-    const filteredMacro = filterMacroByDateRange(macroData.rows, currentMonthStart, currentMonthEnd);
-    const volumeMetrics = calculateVolumeMetrics(filteredMacro);
-
+    // Volume from Dados_macro_vendas is TOTAL for the month (no date filtering needed)
     return {
       investimento: investmentMetrics.investimento,
       impressoes: investmentMetrics.impressoes,
       cliques: investmentMetrics.cliques,
       ctr: investmentMetrics.ctr,
-      // Volume from Dados_macro_vendas (100% of business)
-      leads: volumeMetrics.leads,
-      conversoes: volumeMetrics.vendas,
+      // Volume from Dados_macro_vendas (100% of business - monthly totals)
+      leads: macroData.totalLeads,
+      conversoes: macroData.totalVendas,
       receita: 0, // Will be calculated in component with TICKET_MEDIO
     };
   }, [sheetsData, macroData, currentMonthStart, currentMonthEnd]);
 
-  // Previous period metrics
+  // Previous period metrics (for investment only - macro data doesn't have historical)
   const previous = useMemo(() => {
-    if (!sheetsData || !macroData || !hasPreviousData || !previousMonthEnd) return null;
+    if (!sheetsData || !hasPreviousData || !previousMonthEnd) return null;
     
     // Investment metrics from tabela_objetivo (paid media)
     const filteredSheets = filterByDateRange(sheetsData.rows, previousMonthStart, previousMonthEnd);
     const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
-    
-    // Volume metrics from Dados_macro_vendas (all business)
-    const filteredMacro = filterMacroByDateRange(macroData.rows, previousMonthStart, previousMonthEnd);
-    const volumeMetrics = calculateVolumeMetrics(filteredMacro);
 
+    // Note: Dados_macro_vendas doesn't have historical data, so no previous period for sales/leads
     return {
       investimento: investmentMetrics.investimento,
       impressoes: investmentMetrics.impressoes,
       cliques: investmentMetrics.cliques,
       ctr: investmentMetrics.ctr,
-      // Volume from Dados_macro_vendas (100% of business)
-      leads: volumeMetrics.leads,
-      conversoes: volumeMetrics.vendas,
+      // No historical macro data available
+      leads: 0,
+      conversoes: 0,
       receita: 0,
     };
-  }, [sheetsData, macroData, hasPreviousData, previousMonthStart, previousMonthEnd]);
+  }, [sheetsData, hasPreviousData, previousMonthStart, previousMonthEnd]);
 
   return {
     current,
