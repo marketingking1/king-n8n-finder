@@ -1,12 +1,10 @@
 import { useMemo } from 'react';
 import { MacroMetrics } from '@/hooks/useMacroData';
 import { GoogleSheetsData } from '@/lib/googleSheets';
+import { TICKET_MEDIO } from '@/lib/metrics';
 import { formatCurrency, formatNumber, formatPercent, formatROAS, formatVariation } from '@/lib/formatters';
 import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Ticket médio do produto
-const TICKET_MEDIO = 284;
 
 interface MacroKPICardsProps {
   currentMetrics: MacroMetrics | undefined;
