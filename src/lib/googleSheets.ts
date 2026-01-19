@@ -1,6 +1,11 @@
 const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
-const SPREADSHEET_ID = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
+
+// Planilha 1: tabela_objetivo (mídia paga - investimento/custos)
+const SPREADSHEET_ID_OBJETIVO = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
 const SHEET_NAME_OBJETIVO = 'tabela_objetivo';
+
+// Planilha 2: Dados_macro_vendas (todas as vendas - orgânico + mídia)
+const SPREADSHEET_ID_MACRO = '1FLAmZ4rL2OmxABfIyiPSl9UTgmsC4zc8m039c175ix4';
 const SHEET_NAME_MACRO = 'Dados_macro_vendas';
 
 export interface SheetsMarketingRow {
@@ -46,7 +51,7 @@ export interface MacroSheetsData {
 // Fetch data from tabela_objetivo (mídia paga - investment/costs)
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   const range = `${SHEET_NAME_OBJETIVO}!A:L`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   try {
     const response = await fetch(url);
@@ -94,7 +99,7 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
 // Fetch data from Dados_macro_vendas (ALL sales - organic + paid)
 export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
   const range = `${SHEET_NAME_MACRO}!A:C`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_MACRO}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   try {
     const response = await fetch(url);
