@@ -12,10 +12,15 @@ import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
 
 export default function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { filters, setDateRange, setGranularity, setCampanhas, setGrupos, setCanais, resetFilters } = useFilters();
+  
+  // Only fetch data when we have a valid session
   const { data: marketingData, isLoading: dataLoading } = useDashboardData(filters);
   const { data: filterOptions } = useFilterOptions();
+  
+  // Refetch when session changes
+  const isReady = !!session && !authLoading;
 
   // Calculate previous period for comparison
   const previousPeriodFilters = useMemo(() => {
