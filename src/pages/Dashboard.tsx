@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilters, MIN_DATE } from '@/hooks/useFilters';
 import { useFilteredSheetsData, useSheetsFilterOptions, sheetsToMarketingData } from '@/hooks/useGoogleSheetsData';
 import { useMacroData } from '@/hooks/useMacroData';
 import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calculateVariation } from '@/lib/metrics';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import { MacroKPICards } from '@/components/dashboard/MacroKPICards';
@@ -18,6 +20,18 @@ export default function Dashboard() {
   const { user, session, loading: authLoading } = useAuth();
   const { filters, setDateRange, setGranularity, setCampanhas, setGrupos, setCanais, resetFilters } = useFilters();
   const [activeTab, setActiveTab] = useState('macro');
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  // Handler to refresh all data
+  const handleRefreshData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['google-sheets-data'] });
+    queryClient.invalidateQueries({ queryKey: ['macro-sheets-data'] });
+    toast({
+      title: 'Atualizando dados...',
+      description: 'Os dados estão sendo recarregados.',
+    });
+  }, [queryClient, toast]);
   
   // Fetch all data from Google Sheets
   const { data: filteredSheetsData, isLoading: dataLoading } = useFilteredSheetsData(filters);
@@ -170,6 +184,7 @@ export default function Dashboard() {
         onGruposChange={setGrupos}
         onCanaisChange={setCanais}
         onReset={resetFilters}
+        onRefreshData={handleRefreshData}
       />
       
       <main className="p-6">
