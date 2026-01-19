@@ -35,17 +35,11 @@ function parseNumber(value: string | undefined | null): number {
   return parseFloat(cleaned) || 0;
 }
 
-// Macro data interface for Dados_macro_vendas
-export interface MacroSheetsRow {
-  data: string;
-  vendas: number;
-  leads: number;
-}
-
+// Macro data interface for Dados_macro_vendas (monthly summary)
 export interface MacroSheetsData {
-  rows: MacroSheetsRow[];
   totalVendas: number;
   totalLeads: number;
+  custoVendedor: number;
 }
 
 // Fetch data from tabela_objetivo (mídia paga - investment/costs)
@@ -96,7 +90,7 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   }
 }
 
-// Fetch data from Dados_macro_vendas (ALL sales - organic + paid)
+// Fetch data from Dados_macro_vendas (ALL sales - organic + paid - monthly summary)
 export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
   const range = `${SHEET_NAME_MACRO}!A:C`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_MACRO}/values/${range}?key=${GOOGLE_API_KEY}`;
@@ -113,38 +107,18 @@ export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
     const data = await response.json();
     const values: string[][] = data.values || [];
     
-    // Skip header row
-    const dataRows = values.slice(1).filter(row => row.length >= 3 && row[0]);
-
-    const rows: MacroSheetsRow[] = dataRows.map(row => ({
-      data: row[0] || '',
-      vendas: parseNumber(row[1]),
-      leads: parseNumber(row[2]),
-    }));
-
-    const totalVendas = rows.reduce((sum, row) => sum + row.vendas, 0);
-    const totalLeads = rows.reduce((sum, row) => sum + row.leads, 0);
-
-    return { rows, totalVendas, totalLeads };
+    // Row 2 contains the totals (row 1 is header)
+    const totalsRow = values[1] || [];
+    
+    return {
+      totalVendas: parseNumber(totalsRow[0]),
+      totalLeads: parseNumber(totalsRow[1]),
+      custoVendedor: parseNumber(totalsRow[2]),
+    };
   } catch (error) {
     console.error('Error fetching macro sheets data:', error);
     throw error;
   }
-}
-
-// Filter macro data by date range
-export function filterMacroByDateRange(
-  rows: MacroSheetsRow[],
-  from: Date | undefined,
-  to: Date | undefined
-): MacroSheetsRow[] {
-  return rows.filter(row => {
-    if (!row.data) return false;
-    const rowDate = new Date(row.data);
-    if (from && rowDate < from) return false;
-    if (to && rowDate > to) return false;
-    return true;
-  });
 }
 
 // Filter data by date range
