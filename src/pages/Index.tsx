@@ -1,12 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { Crown, Loader2 } from 'lucide-react';
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/auth', { replace: true });
+      }
+    }
+  }, [user, loading, navigate]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+      <Crown className="h-16 w-16 text-primary mb-4" />
+      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      <p className="mt-4 text-muted-foreground">Carregando...</p>
     </div>
   );
 };
