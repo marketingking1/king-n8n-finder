@@ -2,6 +2,9 @@ import { MarketingData, AggregatedMetrics, CampaignMetrics, GroupMetrics, TimeSe
 import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Ticket médio do produto para cálculo correto de receita e ROAS
+export const TICKET_MEDIO = 284;
+
 export function calculateMetrics(data: MarketingData[]): AggregatedMetrics {
   const totals = data.reduce(
     (acc, row) => ({
@@ -15,14 +18,18 @@ export function calculateMetrics(data: MarketingData[]): AggregatedMetrics {
     { investimento: 0, impressoes: 0, cliques: 0, leads: 0, conversoes: 0, receita: 0 }
   );
 
+  // Receita calculada: Conversões (trackeadas) × Ticket Médio
+  const receitaCalculada = totals.conversoes * TICKET_MEDIO;
+
   return {
     ...totals,
+    receita: receitaCalculada, // Usa receita calculada
     ctr: totals.impressoes > 0 ? (totals.cliques / totals.impressoes) * 100 : 0,
     cpc: totals.cliques > 0 ? totals.investimento / totals.cliques : 0,
     cpl: totals.leads > 0 ? totals.investimento / totals.leads : 0,
     cpa: totals.conversoes > 0 ? totals.investimento / totals.conversoes : 0,
-    roas: totals.investimento > 0 ? totals.receita / totals.investimento : 0,
-    ticketMedio: totals.conversoes > 0 ? totals.receita / totals.conversoes : 0,
+    roas: totals.investimento > 0 ? receitaCalculada / totals.investimento : 0,
+    ticketMedio: TICKET_MEDIO,
     taxaConversao: totals.leads > 0 ? (totals.conversoes / totals.leads) * 100 : 0,
   };
 }
@@ -84,6 +91,7 @@ export function groupByTime(data: MarketingData[], granularity: Granularity): Ti
   return Object.entries(groups)
     .map(([data, rows]) => {
       const metrics = calculateMetrics(rows);
+      const receitaCalculada = metrics.conversoes * TICKET_MEDIO;
       return {
         data,
         investimento: metrics.investimento,
@@ -91,8 +99,8 @@ export function groupByTime(data: MarketingData[], granularity: Granularity): Ti
         cliques: metrics.cliques,
         leads: metrics.leads,
         conversoes: metrics.conversoes,
-        receita: metrics.receita,
-        roas: metrics.roas,
+        receita: receitaCalculada,
+        roas: metrics.investimento > 0 ? receitaCalculada / metrics.investimento : 0,
       };
     })
     .sort((a, b) => a.data.localeCompare(b.data));
