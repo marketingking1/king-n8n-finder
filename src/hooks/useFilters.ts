@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { FilterState, Granularity, DateRange } from '@/types/dashboard';
-import { subDays } from 'date-fns';
+
+// Data mínima: 1 de Janeiro de 2026
+export const MIN_DATE = new Date(2026, 0, 1);
 
 const defaultDateRange: DateRange = {
-  from: subDays(new Date(), 30),
+  from: MIN_DATE,
   to: new Date(),
 };
 
@@ -19,7 +21,9 @@ export function useFilters() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
   const setDateRange = (dateRange: DateRange) => {
-    setFilters(prev => ({ ...prev, dateRange }));
+    // Garantir que a data mínima seja respeitada
+    const from = dateRange.from && dateRange.from < MIN_DATE ? MIN_DATE : dateRange.from;
+    setFilters(prev => ({ ...prev, dateRange: { from, to: dateRange.to } }));
   };
 
   const setGranularity = (granularity: Granularity) => {

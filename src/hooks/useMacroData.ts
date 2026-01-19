@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { startOfMonth, endOfMonth, subMonths, format, getDate } from 'date-fns';
+import { startOfMonth, format, getDate } from 'date-fns';
+import { MIN_DATE } from './useFilters';
 
 export interface MacroMetrics {
   investimento: number;
@@ -39,14 +40,18 @@ export function useMacroData() {
   const today = new Date();
   const currentDay = getDate(today);
   
-  // Current month: from 1st to today
-  const currentMonthStart = startOfMonth(today);
+  // Current month: from 1st to today (mínimo 2026-01-01)
+  const currentMonthStart = startOfMonth(today) < MIN_DATE ? MIN_DATE : startOfMonth(today);
   const currentMonthEnd = today;
   
-  // Previous month: same period (1st to same day of previous month)
-  const previousMonthStart = startOfMonth(subMonths(today, 1));
-  const previousMonthEnd = new Date(subMonths(today, 1));
-  previousMonthEnd.setDate(currentDay);
+  // Previous month comparison: não existe dados antes de 2026, então não compara
+  // Só comparar se o mês anterior for >= 2026-01-01
+  const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const hasPreviousData = previousMonthStart >= MIN_DATE;
+  
+  const previousMonthEnd = hasPreviousData 
+    ? new Date(today.getFullYear(), today.getMonth() - 1, currentDay)
+    : null;
 
   const currentQuery = useQuery({
     queryKey: ['macro-metrics-current', format(currentMonthStart, 'yyyy-MM-dd'), format(currentMonthEnd, 'yyyy-MM-dd')],
@@ -55,15 +60,18 @@ export function useMacroData() {
   });
 
   const previousQuery = useQuery({
-    queryKey: ['macro-metrics-previous', format(previousMonthStart, 'yyyy-MM-dd'), format(previousMonthEnd, 'yyyy-MM-dd')],
-    queryFn: () => fetchMacroMetrics(previousMonthStart, previousMonthEnd),
+    queryKey: ['macro-metrics-previous', hasPreviousData ? format(previousMonthStart, 'yyyy-MM-dd') : 'none'],
+    queryFn: () => hasPreviousData && previousMonthEnd 
+      ? fetchMacroMetrics(previousMonthStart, previousMonthEnd)
+      : Promise.resolve(null),
     staleTime: 5 * 60 * 1000,
+    enabled: hasPreviousData,
   });
 
   return {
     current: currentQuery.data,
-    previous: previousQuery.data,
-    isLoading: currentQuery.isLoading || previousQuery.isLoading,
+    previous: hasPreviousData ? previousQuery.data : null,
+    isLoading: currentQuery.isLoading || (hasPreviousData && previousQuery.isLoading),
     error: currentQuery.error || previousQuery.error,
   };
 }

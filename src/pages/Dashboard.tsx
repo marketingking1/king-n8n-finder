@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useFilters } from '@/hooks/useFilters';
+import { useFilters, MIN_DATE } from '@/hooks/useFilters';
 import { useDashboardData, useFilterOptions } from '@/hooks/useDashboardData';
 import { useMacroData } from '@/hooks/useMacroData';
 import { useGoogleSheetsData } from '@/hooks/useGoogleSheetsData';
@@ -31,22 +31,28 @@ export default function Dashboard() {
   // Refetch when session changes
   const isReady = !!session && !authLoading;
 
-  // Calculate previous period for comparison
+  // Calculate previous period for comparison (only if within valid date range)
   const previousPeriodFilters = useMemo(() => {
-    if (!filters.dateRange.from || !filters.dateRange.to) return filters;
+    if (!filters.dateRange.from || !filters.dateRange.to) return null;
     const daysDiff = Math.ceil(
       (filters.dateRange.to.getTime() - filters.dateRange.from.getTime()) / (1000 * 60 * 60 * 24)
     );
+    const prevFrom = subDays(filters.dateRange.from, daysDiff);
+    
+    // Não comparar se período anterior for antes de 2026
+    if (prevFrom < MIN_DATE) return null;
+    
     return {
       ...filters,
       dateRange: {
-        from: subDays(filters.dateRange.from, daysDiff),
+        from: prevFrom,
         to: subDays(filters.dateRange.to, daysDiff),
       },
     };
   }, [filters]);
 
-  const { data: previousData } = useDashboardData(previousPeriodFilters);
+  const { data: previousData } = useDashboardData(previousPeriodFilters || filters);
+  const hasPreviousData = previousPeriodFilters !== null;
 
   const metrics = useMemo(() => {
     if (!marketingData) return null;
@@ -54,9 +60,9 @@ export default function Dashboard() {
   }, [marketingData]);
 
   const previousMetrics = useMemo(() => {
-    if (!previousData) return null;
+    if (!hasPreviousData || !previousData) return null;
     return calculateMetrics(previousData);
-  }, [previousData]);
+  }, [previousData, hasPreviousData]);
 
   const campaignMetrics = useMemo(() => {
     if (!marketingData) return [];
