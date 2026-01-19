@@ -1,8 +1,15 @@
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { startOfMonth, getDate, subMonths } from 'date-fns';
 import { MIN_DATE } from './useFilters';
 import { useGoogleSheetsData } from './useGoogleSheetsData';
-import { SheetsMarketingRow, filterByDateRange } from '@/lib/googleSheets';
+import { 
+  fetchMacroSheetsData, 
+  filterByDateRange, 
+  filterMacroByDateRange,
+  MacroSheetsRow,
+  SheetsMarketingRow 
+} from '@/lib/googleSheets';
 
 export interface MacroMetrics {
   investimento: number;
@@ -14,17 +21,15 @@ export interface MacroMetrics {
   ctr: number;
 }
 
-function calculateMetricsFromRows(rows: SheetsMarketingRow[]): MacroMetrics {
+// Calculate investment/impressions/clicks from tabela_objetivo (paid media only)
+function calculateInvestmentMetrics(rows: SheetsMarketingRow[]) {
   const metrics = rows.reduce(
     (acc, row) => ({
       investimento: acc.investimento + row.investimento,
       impressoes: acc.impressoes + row.impressoes,
       cliques: acc.cliques + row.cliques,
-      receita: acc.receita + row.receita,
-      leads: acc.leads + row.leads,
-      conversoes: acc.conversoes + row.conversoes,
     }),
-    { investimento: 0, impressoes: 0, cliques: 0, receita: 0, leads: 0, conversoes: 0 }
+    { investimento: 0, impressoes: 0, cliques: 0 }
   );
 
   return {
@@ -33,8 +38,27 @@ function calculateMetricsFromRows(rows: SheetsMarketingRow[]): MacroMetrics {
   };
 }
 
+// Calculate sales/leads from Dados_macro_vendas (all business data)
+function calculateVolumeMetrics(rows: MacroSheetsRow[]) {
+  return rows.reduce(
+    (acc, row) => ({
+      vendas: acc.vendas + row.vendas,
+      leads: acc.leads + row.leads,
+    }),
+    { vendas: 0, leads: 0 }
+  );
+}
+
 export function useMacroData() {
-  const { data: sheetsData, isLoading, error } = useGoogleSheetsData();
+  // Data from tabela_objetivo (paid media - investment, impressions, clicks)
+  const { data: sheetsData, isLoading: isLoadingSheets, error: sheetsError } = useGoogleSheetsData();
+  
+  // Data from Dados_macro_vendas (all business - sales, leads)
+  const { data: macroData, isLoading: isLoadingMacro, error: macroError } = useQuery({
+    queryKey: ['macro-sheets-data'],
+    queryFn: fetchMacroSheetsData,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const today = new Date();
   const currentDay = getDate(today);
@@ -51,22 +75,58 @@ export function useMacroData() {
     ? new Date(today.getFullYear(), today.getMonth() - 1, currentDay)
     : null;
 
+  // Current period metrics
   const current = useMemo(() => {
-    if (!sheetsData) return undefined;
-    const filtered = filterByDateRange(sheetsData.rows, currentMonthStart, currentMonthEnd);
-    return calculateMetricsFromRows(filtered);
-  }, [sheetsData, currentMonthStart, currentMonthEnd]);
+    if (!sheetsData || !macroData) return undefined;
+    
+    // Investment metrics from tabela_objetivo (paid media)
+    const filteredSheets = filterByDateRange(sheetsData.rows, currentMonthStart, currentMonthEnd);
+    const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
+    
+    // Volume metrics from Dados_macro_vendas (all business)
+    const filteredMacro = filterMacroByDateRange(macroData.rows, currentMonthStart, currentMonthEnd);
+    const volumeMetrics = calculateVolumeMetrics(filteredMacro);
 
+    return {
+      investimento: investmentMetrics.investimento,
+      impressoes: investmentMetrics.impressoes,
+      cliques: investmentMetrics.cliques,
+      ctr: investmentMetrics.ctr,
+      // Volume from Dados_macro_vendas (100% of business)
+      leads: volumeMetrics.leads,
+      conversoes: volumeMetrics.vendas,
+      receita: 0, // Will be calculated in component with TICKET_MEDIO
+    };
+  }, [sheetsData, macroData, currentMonthStart, currentMonthEnd]);
+
+  // Previous period metrics
   const previous = useMemo(() => {
-    if (!sheetsData || !hasPreviousData || !previousMonthEnd) return null;
-    const filtered = filterByDateRange(sheetsData.rows, previousMonthStart, previousMonthEnd);
-    return calculateMetricsFromRows(filtered);
-  }, [sheetsData, hasPreviousData, previousMonthStart, previousMonthEnd]);
+    if (!sheetsData || !macroData || !hasPreviousData || !previousMonthEnd) return null;
+    
+    // Investment metrics from tabela_objetivo (paid media)
+    const filteredSheets = filterByDateRange(sheetsData.rows, previousMonthStart, previousMonthEnd);
+    const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
+    
+    // Volume metrics from Dados_macro_vendas (all business)
+    const filteredMacro = filterMacroByDateRange(macroData.rows, previousMonthStart, previousMonthEnd);
+    const volumeMetrics = calculateVolumeMetrics(filteredMacro);
+
+    return {
+      investimento: investmentMetrics.investimento,
+      impressoes: investmentMetrics.impressoes,
+      cliques: investmentMetrics.cliques,
+      ctr: investmentMetrics.ctr,
+      // Volume from Dados_macro_vendas (100% of business)
+      leads: volumeMetrics.leads,
+      conversoes: volumeMetrics.vendas,
+      receita: 0,
+    };
+  }, [sheetsData, macroData, hasPreviousData, previousMonthStart, previousMonthEnd]);
 
   return {
     current,
     previous: hasPreviousData ? previous : null,
-    isLoading,
-    error,
+    isLoading: isLoadingSheets || isLoadingMacro,
+    error: sheetsError || macroError,
   };
 }
