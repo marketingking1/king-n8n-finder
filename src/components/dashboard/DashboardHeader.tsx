@@ -1,4 +1,4 @@
-import { Rocket, LogOut, RefreshCw } from 'lucide-react';
+import { Rocket, LogOut, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from './FilterBar';
@@ -18,6 +18,7 @@ interface DashboardHeaderProps {
   onGruposChange: (grupos: string[]) => void;
   onCanaisChange: (canais: string[]) => void;
   onReset: () => void;
+  onRefreshData: () => void;
 }
 
 export function DashboardHeader({
@@ -29,6 +30,7 @@ export function DashboardHeader({
   onGruposChange,
   onCanaisChange,
   onReset,
+  onRefreshData,
 }: DashboardHeaderProps) {
   const { signOut } = useAuth();
   const { toast } = useToast();
@@ -58,6 +60,10 @@ export function DashboardHeader({
           </div>
           
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onRefreshData} className="border-border/50 hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-500">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
             <Button variant="outline" size="sm" onClick={onReset} className="border-border/50 hover:border-primary/50 hover:bg-primary/10">
               <RefreshCw className="h-4 w-4 mr-2" />
               Resetar
