@@ -5,6 +5,9 @@ import { formatCurrency, formatNumber, formatPercent, formatROAS, formatVariatio
 import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Ticket médio do produto
+const TICKET_MEDIO = 284;
+
 interface MacroKPICardsProps {
   currentMetrics: MacroMetrics | undefined;
   previousMetrics: MacroMetrics | undefined;
@@ -131,7 +134,9 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   const vendas = sheetsData?.vendas || 0;
   const leads = sheetsData?.leads || 0;
   const investimento = currentMetrics?.investimento || 0;
-  const receita = currentMetrics?.receita || 0;
+  
+  // Receita calculada: Vendas (Sheets) × Ticket Médio
+  const receita = vendas * TICKET_MEDIO;
 
   const cpa = vendas > 0 ? investimento / vendas : 0;
   const roas = investimento > 0 ? receita / investimento : 0;
@@ -140,8 +145,8 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   // Previous period calculations (simplified - using same sheets data for now)
   const prevInvestimento = previousMetrics?.investimento || 0;
   const prevVendas = vendas; // Future: get from historical sheets data
+  const prevReceita = prevVendas * TICKET_MEDIO;
   const prevCpa = prevVendas > 0 ? prevInvestimento / prevVendas : 0;
-  const prevReceita = previousMetrics?.receita || 0;
   const prevRoas = prevInvestimento > 0 ? prevReceita / prevInvestimento : 0;
 
   const cpaVariation = calculateVariation(cpa, prevCpa);
