@@ -4,6 +4,7 @@ import { useFilters } from '@/hooks/useFilters';
 import { useDashboardData, useFilterOptions } from '@/hooks/useDashboardData';
 import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calculateVariation } from '@/lib/metrics';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { MacroSection } from '@/components/dashboard/MacroSection';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
@@ -105,37 +106,48 @@ export default function Dashboard() {
         onReset={resetFilters}
       />
       
-      <main className="p-6 space-y-6">
-        {dataLoading ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
+      <main className="p-6 space-y-8">
+        {/* Macro Section - Always shows current month data */}
+        <MacroSection />
+        
+        {/* Divider */}
+        <div className="border-t border-border/50" />
+        
+        {/* Detailed Section with Filters */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-foreground">Análise Detalhada por Período</h2>
+          
+          {dataLoading ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-32" />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Skeleton className="h-80" />
+                <Skeleton className="h-80" />
+              </div>
+            </>
+          ) : metrics ? (
+            <>
+              <KPICards metrics={metrics} variations={variations} />
+              <TrendCharts 
+                timeSeriesData={timeSeriesData} 
+                funnelData={funnelData}
+                campaignMetrics={campaignMetrics}
+              />
+              <CampaignTable 
+                data={campaignMetrics} 
+                allData={marketingData || []}
+              />
+            </>
+          ) : (
+            <div className="text-center py-20 text-muted-foreground">
+              Nenhum dado encontrado para o período selecionado
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Skeleton className="h-80" />
-              <Skeleton className="h-80" />
-            </div>
-          </>
-        ) : metrics ? (
-          <>
-            <KPICards metrics={metrics} variations={variations} />
-            <TrendCharts 
-              timeSeriesData={timeSeriesData} 
-              funnelData={funnelData}
-              campaignMetrics={campaignMetrics}
-            />
-            <CampaignTable 
-              data={campaignMetrics} 
-              allData={marketingData || []}
-            />
-          </>
-        ) : (
-          <div className="text-center py-20 text-muted-foreground">
-            Nenhum dado encontrado para o período selecionado
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </div>
   );
