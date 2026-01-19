@@ -1,6 +1,6 @@
 const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 const SPREADSHEET_ID = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
-const SHEET_NAME = 'tabela_objetiva';
+const SHEET_NAME = 'tabela_objetivo';
 
 export interface SheetsMarketingRow {
   canal: string;
