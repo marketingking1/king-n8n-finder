@@ -1,9 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilters } from '@/hooks/useFilters';
 import { useDashboardData, useFilterOptions } from '@/hooks/useDashboardData';
+import { useMacroData } from '@/hooks/useMacroData';
+import { useGoogleSheetsData } from '@/hooks/useGoogleSheetsData';
 import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calculateVariation } from '@/lib/metrics';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
+import { MacroKPICards } from '@/components/dashboard/MacroKPICards';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
@@ -14,10 +18,15 @@ import { subDays } from 'date-fns';
 export default function Dashboard() {
   const { user, session, loading: authLoading } = useAuth();
   const { filters, setDateRange, setGranularity, setCampanhas, setGrupos, setCanais, resetFilters } = useFilters();
+  const [activeTab, setActiveTab] = useState('macro');
   
   // Only fetch data when we have a valid session
   const { data: marketingData, isLoading: dataLoading } = useDashboardData(filters);
   const { data: filterOptions } = useFilterOptions();
+  
+  // Macro data
+  const { current: macroMetrics, previous: previousMacroMetrics, isLoading: macroLoading } = useMacroData();
+  const { data: sheetsData, isLoading: sheetsLoading } = useGoogleSheetsData();
   
   // Refetch when session changes
   const isReady = !!session && !authLoading;
@@ -92,6 +101,53 @@ export default function Dashboard() {
     return <Navigate to="/auth" replace />;
   }
 
+  const macroContent = (
+    <div className="space-y-6">
+      <MacroKPICards
+        currentMetrics={macroMetrics}
+        previousMetrics={previousMacroMetrics}
+        sheetsData={sheetsData}
+        isLoading={macroLoading || sheetsLoading}
+      />
+      {/* Additional macro charts can be added here */}
+    </div>
+  );
+
+  const detailedContent = (
+    <>
+      {dataLoading ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
+          </div>
+        </>
+      ) : metrics ? (
+        <div className="space-y-6">
+          <KPICards metrics={metrics} variations={variations} />
+          <TrendCharts 
+            timeSeriesData={timeSeriesData} 
+            funnelData={funnelData}
+            campaignMetrics={campaignMetrics}
+          />
+          <CampaignTable 
+            data={campaignMetrics} 
+            allData={marketingData || []}
+          />
+        </div>
+      ) : (
+        <div className="text-center py-20 text-muted-foreground">
+          Nenhum dado encontrado para o período selecionado
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
@@ -105,37 +161,13 @@ export default function Dashboard() {
         onReset={resetFilters}
       />
       
-      <main className="p-6 space-y-6">
-        {dataLoading ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Skeleton className="h-80" />
-              <Skeleton className="h-80" />
-            </div>
-          </>
-        ) : metrics ? (
-          <>
-            <KPICards metrics={metrics} variations={variations} />
-            <TrendCharts 
-              timeSeriesData={timeSeriesData} 
-              funnelData={funnelData}
-              campaignMetrics={campaignMetrics}
-            />
-            <CampaignTable 
-              data={campaignMetrics} 
-              allData={marketingData || []}
-            />
-          </>
-        ) : (
-          <div className="text-center py-20 text-muted-foreground">
-            Nenhum dado encontrado para o período selecionado
-          </div>
-        )}
+      <main className="p-6">
+        <DashboardTabs
+          macroContent={macroContent}
+          detailedContent={detailedContent}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
       </main>
     </div>
   );
