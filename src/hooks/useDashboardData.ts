@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MarketingData, FilterState } from '@/types/dashboard';
 import { format } from 'date-fns';
+import { useEffect } from 'react';
 
 async function fetchMarketingData(filters: FilterState): Promise<MarketingData[]> {
   let query = supabase
@@ -45,6 +46,18 @@ async function fetchFilterOptions() {
 }
 
 export function useDashboardData(filters: FilterState) {
+  const queryClient = useQueryClient();
+
+  // Invalidate queries when auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries({ queryKey: ['marketing-data'] });
+      queryClient.invalidateQueries({ queryKey: ['filter-options'] });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['marketing-data', filters],
     queryFn: () => fetchMarketingData(filters),
