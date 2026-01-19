@@ -1,4 +1,4 @@
-const GOOGLE_API_KEY = 'AIzaSyBmBfb4pM3VqtnLhjZjzYTWUN9UuqXDjkI';
+const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 const SPREADSHEET_ID = '1FLAmZ4rL2OmxABfIyiPSl9UTgmsC4zc8m039c175ix4';
 const SHEET_NAME = 'Dados_macro_vendas';
 
