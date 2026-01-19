@@ -91,6 +91,13 @@ export function FilterBar({
         onChange={onGruposChange}
         placeholder="Grupo de anúncio"
       />
+
+      <MultiSelect
+        options={filterOptions.canais}
+        selected={filters.canais}
+        onChange={onCanaisChange}
+        placeholder="Canal"
+      />
     </div>
   );
 }
