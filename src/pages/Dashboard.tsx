@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilters, MIN_DATE } from '@/hooks/useFilters';
-import { useDashboardData, useFilterOptions } from '@/hooks/useDashboardData';
+import { useFilteredSheetsData, useSheetsFilterOptions, sheetsToMarketingData } from '@/hooks/useGoogleSheetsData';
 import { useMacroData } from '@/hooks/useMacroData';
-import { useGoogleSheetsData } from '@/hooks/useGoogleSheetsData';
 import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calculateVariation } from '@/lib/metrics';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
@@ -20,16 +19,18 @@ export default function Dashboard() {
   const { filters, setDateRange, setGranularity, setCampanhas, setGrupos, setCanais, resetFilters } = useFilters();
   const [activeTab, setActiveTab] = useState('macro');
   
-  // Only fetch data when we have a valid session
-  const { data: marketingData, isLoading: dataLoading } = useDashboardData(filters);
-  const { data: filterOptions } = useFilterOptions();
+  // Fetch all data from Google Sheets
+  const { data: filteredSheetsData, isLoading: dataLoading } = useFilteredSheetsData(filters);
+  const { data: filterOptions } = useSheetsFilterOptions();
   
-  // Macro data
+  // Macro data (current month vs previous month)
   const { current: macroMetrics, previous: previousMacroMetrics, isLoading: macroLoading } = useMacroData();
-  const { data: sheetsData, isLoading: sheetsLoading } = useGoogleSheetsData();
   
-  // Refetch when session changes
-  const isReady = !!session && !authLoading;
+  // Convert sheets data to MarketingData format
+  const marketingData = useMemo(() => {
+    if (!filteredSheetsData) return null;
+    return sheetsToMarketingData(filteredSheetsData.rows);
+  }, [filteredSheetsData]);
 
   // Calculate previous period for comparison (only if within valid date range)
   const previousPeriodFilters = useMemo(() => {
@@ -51,8 +52,13 @@ export default function Dashboard() {
     };
   }, [filters]);
 
-  const { data: previousData } = useDashboardData(previousPeriodFilters || filters);
+  const { data: previousSheetsData } = useFilteredSheetsData(previousPeriodFilters || filters);
   const hasPreviousData = previousPeriodFilters !== null;
+
+  const previousMarketingData = useMemo(() => {
+    if (!hasPreviousData || !previousSheetsData) return null;
+    return sheetsToMarketingData(previousSheetsData.rows);
+  }, [previousSheetsData, hasPreviousData]);
 
   const metrics = useMemo(() => {
     if (!marketingData) return null;
@@ -60,9 +66,9 @@ export default function Dashboard() {
   }, [marketingData]);
 
   const previousMetrics = useMemo(() => {
-    if (!hasPreviousData || !previousData) return null;
-    return calculateMetrics(previousData);
-  }, [previousData, hasPreviousData]);
+    if (!previousMarketingData) return null;
+    return calculateMetrics(previousMarketingData);
+  }, [previousMarketingData]);
 
   const campaignMetrics = useMemo(() => {
     if (!marketingData) return [];
@@ -112,10 +118,9 @@ export default function Dashboard() {
       <MacroKPICards
         currentMetrics={macroMetrics}
         previousMetrics={previousMacroMetrics}
-        sheetsData={sheetsData}
-        isLoading={macroLoading || sheetsLoading}
+        sheetsData={filteredSheetsData}
+        isLoading={macroLoading || dataLoading}
       />
-      {/* Additional macro charts can be added here */}
     </div>
   );
 

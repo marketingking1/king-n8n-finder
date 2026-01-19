@@ -1,16 +1,20 @@
 import { useMemo } from 'react';
 import { MacroMetrics } from '@/hooks/useMacroData';
-import { GoogleSheetsData } from '@/lib/googleSheets';
 import { TICKET_MEDIO } from '@/lib/metrics';
 import { formatCurrency, formatNumber, formatPercent, formatROAS, formatVariation } from '@/lib/formatters';
 import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface SheetsDataSummary {
+  vendas: number;
+  leads: number;
+  taxaConversao: number;
+}
+
 interface MacroKPICardsProps {
   currentMetrics: MacroMetrics | undefined;
-  previousMetrics: MacroMetrics | undefined;
-  sheetsData: GoogleSheetsData | undefined;
-  previousSheetsData?: GoogleSheetsData; // For future implementation
+  previousMetrics: MacroMetrics | null | undefined;
+  sheetsData: SheetsDataSummary | undefined | null;
   isLoading: boolean;
 }
 
@@ -121,26 +125,39 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
     if (!currentMetrics || !previousMetrics) return null;
     return {
       investimento: calculateVariation(currentMetrics.investimento, previousMetrics.investimento),
-      receita: calculateVariation(currentMetrics.receita, previousMetrics.receita),
       impressoes: calculateVariation(currentMetrics.impressoes, previousMetrics.impressoes),
       cliques: calculateVariation(currentMetrics.cliques, previousMetrics.cliques),
       ctr: calculateVariation(currentMetrics.ctr, previousMetrics.ctr),
+      leads: calculateVariation(currentMetrics.leads, previousMetrics.leads),
+      conversoes: calculateVariation(currentMetrics.conversoes, previousMetrics.conversoes),
     };
   }, [currentMetrics, previousMetrics]);
 
-  // Calculate CPA and ROAS from Supabase + Sheets data
-  const vendas = sheetsData?.vendas || 0;
-  const leads = sheetsData?.leads || 0;
+  // Use currentMetrics from Sheets data
+  const vendas = currentMetrics?.conversoes || 0;
+  const leads = currentMetrics?.leads || 0;
   const investimento = currentMetrics?.investimento || 0;
   
-  // Receita calculada: Vendas (Sheets) × Ticket Médio
+  // Receita calculada: Vendas × Ticket Médio
   const receita = vendas * TICKET_MEDIO;
 
   const cpa = vendas > 0 ? investimento / vendas : 0;
   const roas = investimento > 0 ? receita / investimento : 0;
-  const taxaConversao = sheetsData?.taxaConversao || 0;
+  const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
 
-  // Não mostrar variação de CPA e ROAS pois não temos dados históricos do Sheets
+  // Calculate CPA and ROAS variation
+  const prevVendas = previousMetrics?.conversoes || 0;
+  const prevInvestimento = previousMetrics?.investimento || 0;
+  const prevReceita = prevVendas * TICKET_MEDIO;
+  const prevCpa = prevVendas > 0 ? prevInvestimento / prevVendas : 0;
+  const prevRoas = prevInvestimento > 0 ? prevReceita / prevInvestimento : 0;
+  const prevTaxaConversao = (previousMetrics?.leads || 0) > 0 
+    ? (prevVendas / (previousMetrics?.leads || 1)) * 100 
+    : 0;
+
+  const cpaVariation = previousMetrics ? calculateVariation(cpa, prevCpa) : undefined;
+  const roasVariation = previousMetrics ? calculateVariation(roas, prevRoas) : undefined;
+  const taxaVariation = previousMetrics ? calculateVariation(taxaConversao, prevTaxaConversao) : undefined;
 
   if (isLoading) {
     return (
@@ -173,12 +190,14 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="Vendas (Conversões)"
           value={formatNumber(vendas)}
+          variation={variations?.conversoes}
           colorType="growth"
           icon={<ShoppingCart className="h-6 w-6" />}
         />
         <MainKPICard
           title="CPA"
           value={formatCurrency(cpa)}
+          variation={cpaVariation}
           colorType="cpa"
           rawValue={cpa}
           invertVariation={true}
@@ -187,6 +206,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="ROAS"
           value={formatROAS(roas)}
+          variation={roasVariation}
           colorType="roas"
           rawValue={roas}
           icon={<BarChart3 className="h-6 w-6" />}
@@ -194,6 +214,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="Taxa Conversão Lead→Venda"
           value={formatPercent(taxaConversao)}
+          variation={taxaVariation}
           colorType="conversion"
           icon={<TrendingUp className="h-6 w-6" />}
         />
@@ -204,12 +225,12 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <SecondaryKPICard
           title="Receita Total"
           value={formatCurrency(receita)}
-          variation={variations?.receita}
           icon={<Wallet className="h-5 w-5" />}
         />
         <SecondaryKPICard
           title="Leads Totais"
           value={formatNumber(leads)}
+          variation={variations?.leads}
           icon={<Users className="h-5 w-5" />}
         />
         <SecondaryKPICard
