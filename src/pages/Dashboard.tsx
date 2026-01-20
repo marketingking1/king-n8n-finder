@@ -94,6 +94,12 @@ export default function Dashboard() {
     return groupByTime(marketingData, filters.granularity);
   }, [marketingData, filters.granularity]);
 
+  // Dados agregados por semana para o gráfico de CTR (sempre semanal)
+  const weeklyTimeSeriesData = useMemo(() => {
+    if (!marketingData) return [];
+    return groupByTime(marketingData, 'week');
+  }, [marketingData]);
+
   const funnelData = useMemo(() => {
     if (!marketingData) return [];
     return calculateFunnel(marketingData);
@@ -157,6 +163,7 @@ export default function Dashboard() {
           <KPICards metrics={metrics} variations={variations} />
           <TrendCharts 
             timeSeriesData={timeSeriesData} 
+            weeklyTimeSeriesData={weeklyTimeSeriesData}
             funnelData={funnelData}
             campaignMetrics={campaignMetrics}
           />

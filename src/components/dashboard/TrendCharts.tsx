@@ -8,18 +8,20 @@ import { ROASByCampaignChart } from './charts/ROASByCampaignChart';
 
 interface TrendChartsProps {
   timeSeriesData: TimeSeriesData[];
+  weeklyTimeSeriesData: TimeSeriesData[]; // Dados sempre agregados por semana para CTR
   funnelData: FunnelData[];
   campaignMetrics?: CampaignMetrics[];
 }
 
-export function TrendCharts({ timeSeriesData, funnelData, campaignMetrics = [] }: TrendChartsProps) {
+export function TrendCharts({ timeSeriesData, weeklyTimeSeriesData, funnelData, campaignMetrics = [] }: TrendChartsProps) {
   return (
     <div className="space-y-6">
       {/* First row: Investment, Impressions, CTR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <InvestmentChart data={timeSeriesData} />
         <ImpressionsChart data={timeSeriesData} />
-        <CTRChart data={timeSeriesData} />
+        {/* CTR usa dados semanais para cálculo correto: SUM(cliques)/SUM(impressões) */}
+        <CTRChart data={weeklyTimeSeriesData} />
       </div>
       
       {/* Second row: Conversion Rate, CPA, ROAS by Campaign */}
