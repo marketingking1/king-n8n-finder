@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -56,10 +60,16 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         chart: {
+          cyan: "hsl(var(--chart-cyan))",
+          blue: "hsl(var(--chart-blue))",
+          royal: "hsl(var(--chart-royal))",
+          teal: "hsl(var(--chart-teal))",
+          sky: "hsl(var(--chart-sky))",
+          indigo: "hsl(var(--chart-indigo))",
+          // Legacy compatibility
           magenta: "hsl(var(--chart-magenta))",
           pink: "hsl(var(--chart-pink))",
           purple: "hsl(var(--chart-purple))",
-          blue: "hsl(var(--chart-blue))",
           green: "hsl(var(--chart-green))",
           orange: "hsl(var(--chart-orange))",
         },
@@ -105,7 +115,15 @@ export default {
             boxShadow: "0 0 20px -5px hsl(var(--glow-primary) / 0.3)",
           },
           "50%": {
-            boxShadow: "0 0 30px -5px hsl(var(--glow-primary) / 0.5)",
+            boxShadow: "0 0 40px -5px hsl(var(--glow-primary) / 0.6)",
+          },
+        },
+        "cyber-glow": {
+          "0%, 100%": {
+            filter: "drop-shadow(0 0 5px hsl(var(--primary) / 0.4))",
+          },
+          "50%": {
+            filter: "drop-shadow(0 0 15px hsl(var(--primary) / 0.7))",
           },
         },
       },
@@ -113,6 +131,7 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "glow-pulse": "glow-pulse 3s ease-in-out infinite",
+        "cyber-glow": "cyber-glow 2s ease-in-out infinite",
       },
     },
   },
