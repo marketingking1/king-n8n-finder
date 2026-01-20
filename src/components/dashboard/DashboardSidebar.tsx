@@ -72,7 +72,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
           <img src={logo} alt="King of Languages" className="h-16 w-16 object-contain" />
           {!isCollapsed && (
             <span className="font-display font-semibold text-foreground truncate">
-              King of Languages
+              King Acquisition
             </span>
           )}
         </div>
