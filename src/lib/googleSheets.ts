@@ -44,7 +44,8 @@ export interface MacroSheetsData {
 
 // Fetch data from tabela_objetivo (mídia paga - investment/costs)
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
-  const range = `${SHEET_NAME_OBJETIVO}!A:L`;
+  // Use A:J range (excludes ID columns K,L) to ensure all data rows are fetched
+  const range = `${SHEET_NAME_OBJETIVO}!A:J`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   try {
