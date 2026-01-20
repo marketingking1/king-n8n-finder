@@ -123,8 +123,8 @@ function ComparisonRow({ label, current, previous, previousYear, variation, inve
   const isNeutral = Math.abs(variation) < 0.5;
   
   const getIcon = () => {
-    if (isNeutral) return <Minus className="h-4 w-4" />;
-    return isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />;
+    if (isNeutral) return <Minus className="h-3.5 w-3.5" />;
+    return isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />;
   };
   
   const getColor = () => {
@@ -133,16 +133,16 @@ function ComparisonRow({ label, current, previous, previousYear, variation, inve
   };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-4">
         <div className="text-right">
-          <p className="text-sm font-bold text-foreground">{current}</p>
+          <p className="text-sm font-semibold text-foreground">{current}</p>
           <p className="text-xs text-muted-foreground">{previous} ({previousYear})</p>
         </div>
-        <div className={cn("flex items-center gap-1 min-w-[80px] justify-end", getColor())}>
+        <div className={cn("flex items-center gap-1 min-w-[70px] justify-end", getColor())}>
           {getIcon()}
-          <span className="text-sm font-medium">{formatVariation(Math.abs(variation))}</span>
+          <span className="text-xs font-medium">{formatVariation(Math.abs(variation))}</span>
         </div>
       </div>
     </div>
@@ -194,11 +194,11 @@ export function YoYComparison({ currentData, isLoading: parentLoading }: YoYComp
 
   if (isLoading) {
     return (
-      <div className="glow-card p-6">
-        <h3 className="text-lg font-display font-semibold mb-6 text-foreground">Comparativo Ano Anterior</h3>
-        <div className="space-y-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-12 bg-muted/20 rounded animate-pulse" />
+      <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6">
+        <h3 className="text-base font-display font-semibold mb-6 text-foreground">Comparativo Ano Anterior</h3>
+        <div className="space-y-3">
+          {[...Array(7)].map((_, i) => (
+            <div key={i} className="h-10 bg-muted/20 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -207,24 +207,24 @@ export function YoYComparison({ currentData, isLoading: parentLoading }: YoYComp
 
   if (error || !comparisonData || !historicalData) {
     return (
-      <div className="glow-card p-6">
-        <h3 className="text-lg font-display font-semibold mb-6 text-foreground">Comparativo Ano Anterior</h3>
-        <p className="text-center text-muted-foreground">Dados históricos não disponíveis</p>
+      <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6">
+        <h3 className="text-base font-display font-semibold mb-6 text-foreground">Comparativo Ano Anterior</h3>
+        <p className="text-center text-muted-foreground text-sm">Dados históricos não disponíveis</p>
       </div>
     );
   }
 
   return (
-    <div className="glow-card p-6">
+    <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-display font-semibold text-foreground">Comparativo Ano Anterior</h3>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+        <h3 className="text-base font-display font-semibold text-foreground">Comparativo Ano Anterior</h3>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
           <CalendarDays className="h-4 w-4 text-primary" />
           <span className="text-xs text-muted-foreground">{currentMonthName} 2026 vs 2025</span>
         </div>
       </div>
       
-      <div className="space-y-1">
+      <div>
         <ComparisonRow
           label="Vendas"
           current={formatNumber(comparisonData.vendas.current)}

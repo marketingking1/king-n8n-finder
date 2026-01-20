@@ -25,28 +25,28 @@ function FunnelStage({ name, value, conversionRate, icon, widthPercent, bgColor,
       {/* Stage bar */}
       <div 
         className={cn(
-          "relative py-4 px-5 flex items-center justify-between rounded-xl border border-border/50 transition-all duration-300 hover:scale-[1.02]",
+          "relative py-4 px-5 flex items-center justify-between rounded-lg border border-border transition-all duration-200 hover:border-primary/30",
           bgColor
         )}
         style={{ width: `${widthPercent}%`, minWidth: '200px' }}
       >
         <div className="flex items-center gap-3">
-          <div className="text-primary p-2 rounded-lg bg-primary/20">
+          <div className="p-2 rounded-lg bg-primary/15 text-primary">
             {icon}
           </div>
           <span className="text-sm font-medium text-foreground">{name}</span>
         </div>
-        <span className="text-lg font-bold text-foreground">{formatNumber(value)}</span>
+        <span className="text-lg font-display font-bold text-foreground">{formatNumber(value)}</span>
       </div>
       
       {/* Arrow and conversion rate */}
       {!isLast && (
-        <div className="flex flex-col items-center py-3">
-          <ChevronDown className="h-6 w-6 text-primary/60" />
+        <div className="flex flex-col items-center py-2">
+          <ChevronDown className="h-5 w-5 text-muted-foreground" />
           {conversionRate !== undefined && (
-            <div className="flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-card/80 border border-border/30">
+            <div className="flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-md bg-[hsl(216,30%,16%)] border border-border">
               <span className={cn(
-                "text-sm font-bold",
+                "text-xs font-semibold",
                 conversionRate >= 5 ? "text-success" : conversionRate >= 1 ? "text-warning" : "text-destructive"
               )}>
                 {formatPercent(conversionRate)}
@@ -81,7 +81,7 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
         conversionRate: impressoesToCliques, 
         icon: <Eye className="h-5 w-5" />, 
         widthPercent: 100,
-        bgColor: 'bg-gradient-to-r from-primary/20 to-primary/10'
+        bgColor: 'bg-[hsl(216,30%,14%)]'
       },
       { 
         name: 'Cliques', 
@@ -89,7 +89,7 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
         conversionRate: cliquesToLeads, 
         icon: <MousePointer className="h-5 w-5" />, 
         widthPercent: 82,
-        bgColor: 'bg-gradient-to-r from-chart-blue/20 to-chart-blue/10'
+        bgColor: 'bg-[hsl(216,30%,14%)]'
       },
       { 
         name: 'Leads', 
@@ -97,14 +97,14 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
         conversionRate: leadsToVendas, 
         icon: <Users className="h-5 w-5" />, 
         widthPercent: 64,
-        bgColor: 'bg-gradient-to-r from-chart-royal/20 to-chart-royal/10'
+        bgColor: 'bg-[hsl(216,30%,14%)]'
       },
       { 
         name: 'Vendas', 
         value: vendas, 
         icon: <ShoppingCart className="h-5 w-5" />, 
         widthPercent: 46,
-        bgColor: 'bg-gradient-to-r from-success/20 to-success/10',
+        bgColor: 'bg-success/10 border-success/20',
         isLast: true
       },
     ];
@@ -112,13 +112,13 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
 
   if (isLoading) {
     return (
-      <div className="glow-card p-6">
-        <h3 className="text-lg font-display font-semibold mb-6 text-foreground">Funil de Conversão</h3>
+      <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6">
+        <h3 className="text-base font-display font-semibold mb-6 text-foreground">Funil de Conversão</h3>
         <div className="flex flex-col items-center space-y-4">
           {[100, 82, 64, 46].map((width, i) => (
             <div 
               key={i} 
-              className="h-14 bg-muted/20 rounded-xl animate-pulse"
+              className="h-14 bg-muted/20 rounded-lg animate-pulse"
               style={{ width: `${width}%`, minWidth: '200px' }}
             />
           ))}
@@ -129,9 +129,9 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
 
   if (!funnelData) {
     return (
-      <div className="glow-card p-6">
-        <h3 className="text-lg font-display font-semibold mb-6 text-foreground">Funil de Conversão</h3>
-        <p className="text-center text-muted-foreground">Sem dados disponíveis</p>
+      <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6">
+        <h3 className="text-base font-display font-semibold mb-6 text-foreground">Funil de Conversão</h3>
+        <p className="text-center text-muted-foreground text-sm">Sem dados disponíveis</p>
       </div>
     );
   }
@@ -142,11 +142,11 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
     : 0;
 
   return (
-    <div className="glow-card p-6">
+    <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-display font-semibold text-foreground">Análise de Funil de Conversão</h3>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-          <span className="text-xs text-muted-foreground">Eficiência Geral:</span>
+        <h3 className="text-base font-display font-semibold text-foreground">Funil de Conversão</h3>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
+          <span className="text-xs text-muted-foreground">Eficiência:</span>
           <span className="text-sm font-bold text-primary">{formatPercent(overallEfficiency)}</span>
         </div>
       </div>

@@ -41,15 +41,17 @@ function KPICard({ title, value, variation, colorType, rawValue, icon }: KPICard
   };
 
   return (
-    <div className="glow-card-strong p-4 flex items-center gap-4">
-      <div className="flex-shrink-0 text-primary">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-muted-foreground truncate">{title}</p>
-        <p className={cn("text-2xl font-bold tracking-tight", getValueColor())}>
-          {value}
-        </p>
+    <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:border-primary/30 transition-all duration-200">
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0 p-2.5 rounded-lg bg-primary/10 text-primary">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate mb-1">{title}</p>
+          <p className={cn("text-2xl font-display font-bold tracking-tight", getValueColor())}>
+            {value}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -63,20 +65,20 @@ export function KPICards({ metrics, variations }: KPICardsProps) {
         value={formatCurrency(metrics.investimento)}
         variation={variations?.investimento}
         colorType="neutral"
-        icon={<DollarSign className="h-6 w-6" />}
+        icon={<DollarSign className="h-5 w-5" />}
       />
       <KPICard
         title="Impressões"
         value={formatNumber(metrics.impressoes)}
         colorType="neutral"
-        icon={<Eye className="h-6 w-6" />}
+        icon={<Eye className="h-5 w-5" />}
       />
       <KPICard
         title="Conversões"
         value={formatNumber(metrics.conversoes)}
         variation={variations?.conversoes}
         colorType="growth"
-        icon={<ShoppingCart className="h-6 w-6" />}
+        icon={<ShoppingCart className="h-5 w-5" />}
       />
       <KPICard
         title="CPA médio"
@@ -84,7 +86,7 @@ export function KPICards({ metrics, variations }: KPICardsProps) {
         variation={variations?.cpa}
         colorType="cpa"
         rawValue={metrics.cpa}
-        icon={<Target className="h-6 w-6" />}
+        icon={<Target className="h-5 w-5" />}
       />
       <KPICard
         title="ROAS"
@@ -92,7 +94,7 @@ export function KPICards({ metrics, variations }: KPICardsProps) {
         variation={variations?.roas}
         colorType="roas"
         rawValue={metrics.roas}
-        icon={<BarChart3 className="h-6 w-6" />}
+        icon={<BarChart3 className="h-5 w-5" />}
       />
     </div>
   );

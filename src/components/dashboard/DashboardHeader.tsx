@@ -1,4 +1,4 @@
-import { Rocket, LogOut, RefreshCw, RotateCcw } from 'lucide-react';
+import { Crown, LogOut, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from './FilterBar';
@@ -44,37 +44,54 @@ export function DashboardHeader({
   };
 
   return (
-    <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+    <header className="border-b border-border bg-[hsl(215,35%,11%)] sticky top-0 z-50">
       <div className="px-6 py-4">
+        {/* Top Row: Branding + Actions */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="p-2 rounded-xl bg-primary/10 border border-primary/30">
-              <Rocket className="h-8 w-8 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <Crown className="h-7 w-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">
-                Acompanhamento de performance - <span className="text-gradient">Perpétuo</span>
+              <h1 className="text-lg font-display font-semibold text-foreground">
+                King of Languages
               </h1>
-              <p className="text-sm text-muted-foreground">Performance Marketing Dashboard</p>
+              <p className="text-xs text-muted-foreground">Dashboard de Marketing</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onRefreshData} className="border-border/50 hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-500">
-              <RotateCcw className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRefreshData}
+              className="h-9 gap-2 text-success hover:bg-success/10 hover:border-success/50 hover:text-success"
+            >
+              <RotateCcw className="h-4 w-4" />
               Atualizar
             </Button>
-            <Button variant="outline" size="sm" onClick={onReset} className="border-border/50 hover:border-primary/50 hover:bg-primary/10">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onReset}
+              className="h-9 gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
               Resetar
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive">
-              <LogOut className="h-4 w-4 mr-2" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="h-9 gap-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
               Sair
             </Button>
           </div>
         </div>
 
+        {/* Filter Bar */}
         <FilterBar
           filters={filters}
           filterOptions={filterOptions}
