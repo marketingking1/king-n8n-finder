@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BarChart3, 
   LogOut,
   ChevronLeft,
-  ChevronRight,
-  Crown
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import logo from '@/assets/logo.png';
 
 interface NavItem {
   id: string;
@@ -69,9 +69,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
           "flex items-center h-16 px-4 border-b border-border",
           isCollapsed ? "justify-center" : "gap-3"
         )}>
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Crown className="h-5 w-5 text-primary" />
-          </div>
+          <img src={logo} alt="King of Languages" className="h-8 w-8 object-contain" />
           {!isCollapsed && (
             <span className="font-display font-semibold text-foreground truncate">
               King of Languages
@@ -99,7 +97,6 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
             </div>
           </div>
         </nav>
-
         {/* Bottom Section */}
         <div className="px-3 py-4 border-t border-border space-y-1">
           <NavButton
