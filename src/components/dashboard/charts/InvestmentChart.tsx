@@ -6,9 +6,10 @@ import { useMemo } from 'react';
 
 interface InvestmentChartProps {
   data: TimeSeriesData[];
+  delay?: number;
 }
 
-export function InvestmentChart({ data }: InvestmentChartProps) {
+export function InvestmentChart({ data, delay = 0 }: InvestmentChartProps) {
   // Calculate 7-day moving average
   const chartData = useMemo(() => {
     return data.map((item, index) => {
@@ -42,7 +43,7 @@ export function InvestmentChart({ data }: InvestmentChartProps) {
   };
 
   return (
-    <ChartCard title="Investimento Total" subtitle="com média móvel de 7 dias">
+    <ChartCard title="Investimento Total" subtitle="com média móvel de 7 dias" delay={delay}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>

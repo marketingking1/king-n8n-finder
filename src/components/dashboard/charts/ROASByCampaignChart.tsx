@@ -6,6 +6,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface ROASByCampaignChartProps {
   data: CampaignMetrics[];
+  delay?: number;
 }
 
 const COLORS = [
@@ -16,7 +17,7 @@ const COLORS = [
   'hsl(175, 80%, 45%)',    // Teal
 ];
 
-export function ROASByCampaignChart({ data }: ROASByCampaignChartProps) {
+export function ROASByCampaignChart({ data, delay = 0 }: ROASByCampaignChartProps) {
   // Sort by ROAS and take top 5 campaigns
   const topCampaigns = useMemo(() => {
     return [...data]
@@ -46,7 +47,7 @@ export function ROASByCampaignChart({ data }: ROASByCampaignChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <ChartCard title="ROAS por Campanha" subtitle="Top 5 campanhas">
+      <ChartCard title="ROAS por Campanha" subtitle="Top 5 campanhas" delay={delay}>
         <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
           Nenhuma campanha disponível
         </div>
@@ -55,7 +56,7 @@ export function ROASByCampaignChart({ data }: ROASByCampaignChartProps) {
   }
 
   return (
-    <ChartCard title="ROAS por Campanha" subtitle="Top 5 campanhas por retorno">
+    <ChartCard title="ROAS por Campanha" subtitle="Top 5 campanhas por retorno" delay={delay}>
       <div className="space-y-3 h-full flex flex-col justify-center px-1">
         {chartData.map((campaign, index) => (
           <div key={index} className="group">

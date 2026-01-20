@@ -5,9 +5,10 @@ import { ChartCard } from './ChartCard';
 
 interface ImpressionsChartProps {
   data: TimeSeriesData[];
+  delay?: number;
 }
 
-export function ImpressionsChart({ data }: ImpressionsChartProps) {
+export function ImpressionsChart({ data, delay = 0 }: ImpressionsChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -23,7 +24,7 @@ export function ImpressionsChart({ data }: ImpressionsChartProps) {
   };
 
   return (
-    <ChartCard title="Impressões Diárias" subtitle="Alcance total por dia">
+    <ChartCard title="Impressões Diárias" subtitle="Alcance total por dia" delay={delay}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>

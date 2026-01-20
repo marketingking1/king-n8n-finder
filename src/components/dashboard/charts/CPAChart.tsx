@@ -6,9 +6,10 @@ import { useMemo } from 'react';
 
 interface CPAChartProps {
   data: TimeSeriesData[];
+  delay?: number;
 }
 
-export function CPAChart({ data }: CPAChartProps) {
+export function CPAChart({ data, delay = 0 }: CPAChartProps) {
   const chartData = useMemo(() => {
     return data.map(item => ({
       ...item,
@@ -58,7 +59,7 @@ export function CPAChart({ data }: CPAChartProps) {
   };
 
   return (
-    <ChartCard title="Custo por Aquisição (CPA)" subtitle="Investimento e CPA médio de 7 dias">
+    <ChartCard title="Custo por Aquisição (CPA)" subtitle="Investimento e CPA médio de 7 dias" delay={delay}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartDataWithMA} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>
