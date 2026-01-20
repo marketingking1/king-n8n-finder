@@ -45,10 +45,12 @@ function MainKPICard({ title, value, variation, colorType, rawValue, icon, inver
     switch (colorType) {
       case 'cpa':
         if (rawValue === undefined) return 'text-foreground';
-        return rawValue <= 300 ? 'text-success' : 'text-destructive';
+        // CPA bom (<= 300) = dourado (accent), CPA ruim = vermelho
+        return rawValue <= 300 ? 'text-accent' : 'text-destructive-light';
       case 'roas':
         if (rawValue === undefined) return 'text-foreground';
-        return rawValue >= 1 ? 'text-success' : 'text-destructive';
+        // ROAS bom (>= 1) = dourado (accent), ROAS ruim = vermelho
+        return rawValue >= 1 ? 'text-accent' : 'text-destructive-light';
       case 'growth':
       case 'conversion':
         return 'text-foreground';
@@ -57,64 +59,95 @@ function MainKPICard({ title, value, variation, colorType, rawValue, icon, inver
     }
   };
 
-  const getVariationColor = () => {
-    if (variation === undefined) return 'text-muted-foreground';
-    const isPositive = invertVariation ? variation < 0 : variation >= 0;
-    return isPositive ? 'text-success' : 'text-destructive';
+  const getCardClass = () => {
+    switch (colorType) {
+      case 'cpa':
+        if (rawValue === undefined) return 'glow-card-strong';
+        return rawValue <= 300 ? 'glow-card-gold' : 'glow-card-red';
+      case 'roas':
+        if (rawValue === undefined) return 'glow-card-strong';
+        return rawValue >= 1 ? 'glow-card-gold' : 'glow-card-red';
+      case 'growth':
+        return 'glow-card-gold';
+      default:
+        return 'glow-card-strong';
+    }
   };
 
-  const getVariationIcon = () => {
+  const getIconClass = () => {
+    switch (colorType) {
+      case 'cpa':
+        if (rawValue === undefined) return 'icon-glow-blue';
+        return rawValue <= 300 ? 'icon-glow-gold' : 'icon-glow-red';
+      case 'roas':
+        if (rawValue === undefined) return 'icon-glow-blue';
+        return rawValue >= 1 ? 'icon-glow-gold' : 'icon-glow-red';
+      case 'growth':
+        return 'icon-glow-gold';
+      default:
+        return 'icon-glow-blue';
+    }
+  };
+
+  const getVariationBadge = () => {
     if (variation === undefined) return null;
-    const isUp = variation >= 0;
-    return isUp ? '↑' : '↓';
+    const isPositive = invertVariation ? variation < 0 : variation >= 0;
+    const badgeClass = isPositive ? 'badge-positive' : 'badge-negative';
+    const arrow = variation >= 0 ? '▲' : '▼';
+    
+    return (
+      <span className={badgeClass}>
+        {arrow} {formatVariation(Math.abs(variation))}
+      </span>
+    );
   };
 
   return (
-    <div className="glow-card-strong p-6 flex flex-col">
+    <div className={cn(getCardClass(), "p-6 flex flex-col")}>
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex-shrink-0 text-primary p-2 rounded-lg bg-primary/10">
+        <div className={cn("flex-shrink-0 p-2 rounded-lg bg-primary/10", getIconClass())}>
           {icon}
         </div>
         <p className="text-sm text-muted-foreground font-medium">{title}</p>
       </div>
-      <p className={cn("text-3xl font-bold tracking-tight mb-2", getValueColor())}>
+      <p className={cn("kpi-value mb-2", getValueColor())}>
         {value}
       </p>
       {variation !== undefined && (
-        <p className={cn("text-sm font-medium", getVariationColor())}>
-          {getVariationIcon()} {formatVariation(Math.abs(variation))} vs mês anterior
-        </p>
+        <div className="flex items-center gap-2">
+          {getVariationBadge()}
+          <span className="text-xs text-muted-foreground">vs mês anterior</span>
+        </div>
       )}
     </div>
   );
 }
 
 function SecondaryKPICard({ title, value, variation, icon }: SecondaryKPICardProps) {
-  const getVariationColor = () => {
-    if (variation === undefined) return 'text-muted-foreground';
-    return variation >= 0 ? 'text-success' : 'text-destructive';
-  };
-
-  const getVariationIcon = () => {
+  const getVariationBadge = () => {
     if (variation === undefined) return null;
-    return variation >= 0 ? '↑' : '↓';
+    const isPositive = variation >= 0;
+    const badgeClass = isPositive ? 'badge-positive' : 'badge-negative';
+    const arrow = variation >= 0 ? '▲' : '▼';
+    
+    return (
+      <span className={cn(badgeClass, "text-[10px]")}>
+        {arrow} {formatVariation(Math.abs(variation))}
+      </span>
+    );
   };
 
   return (
     <div className="glow-card p-4 flex items-center gap-4">
-      <div className="flex-shrink-0 text-primary/70">
+      <div className="flex-shrink-0 icon-glow-blue opacity-70">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground truncate">{title}</p>
-        <p className="text-xl font-bold tracking-tight text-foreground">
+        <p className="text-xl font-bold tracking-tight text-foreground tabular-nums">
           {value}
         </p>
-        {variation !== undefined && (
-          <p className={cn("text-xs font-medium", getVariationColor())}>
-            {getVariationIcon()} {formatVariation(Math.abs(variation))}
-          </p>
-        )}
+        {variation !== undefined && getVariationBadge()}
       </div>
     </div>
   );
@@ -168,12 +201,12 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="glow-card-strong p-6 h-32 animate-pulse bg-muted/20" />
+            <div key={i} className="glow-card p-6 h-32 skeleton-shimmer" />
           ))}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="glow-card p-4 h-24 animate-pulse bg-muted/20" />
+            <div key={i} className="glow-card p-4 h-24 skeleton-shimmer" />
           ))}
         </div>
       </div>

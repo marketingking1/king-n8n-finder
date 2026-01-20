@@ -30,24 +30,60 @@ function KPICard({ title, value, variation, colorType, rawValue, icon }: KPICard
       case 'cpa':
         if (rawValue === undefined) return 'text-foreground';
         const cpaColor = getCPAColor(rawValue);
-        return cpaColor === 'success' ? 'text-success' : cpaColor === 'warning' ? 'text-warning' : 'text-destructive';
+        // CPA bom = dourado (accent), CPA ruim = vermelho (destructive)
+        return cpaColor === 'success' ? 'text-accent' : cpaColor === 'warning' ? 'text-warning' : 'text-destructive-light';
       case 'roas':
         if (rawValue === undefined) return 'text-foreground';
         const roasColor = getROASColor(rawValue);
-        return roasColor === 'success' ? 'text-success' : 'text-destructive';
+        // ROAS bom = dourado (accent), ROAS ruim = vermelho (destructive)
+        return roasColor === 'success' ? 'text-accent' : 'text-destructive-light';
       default:
         return 'text-foreground';
     }
   };
 
+  const getCardClass = () => {
+    switch (colorType) {
+      case 'cpa':
+        if (rawValue === undefined) return 'glow-card';
+        const cpaColor = getCPAColor(rawValue);
+        return cpaColor === 'success' ? 'glow-card-gold' : cpaColor === 'destructive' ? 'glow-card-red' : 'glow-card';
+      case 'roas':
+        if (rawValue === undefined) return 'glow-card';
+        const roasColor = getROASColor(rawValue);
+        return roasColor === 'success' ? 'glow-card-gold' : 'glow-card-red';
+      case 'growth':
+        return 'glow-card-gold';
+      default:
+        return 'glow-card';
+    }
+  };
+
+  const getIconClass = () => {
+    switch (colorType) {
+      case 'cpa':
+        if (rawValue === undefined) return 'icon-glow-blue';
+        const cpaColor = getCPAColor(rawValue);
+        return cpaColor === 'success' ? 'icon-glow-gold' : cpaColor === 'destructive' ? 'icon-glow-red' : 'icon-glow-blue';
+      case 'roas':
+        if (rawValue === undefined) return 'icon-glow-blue';
+        const roasColor = getROASColor(rawValue);
+        return roasColor === 'success' ? 'icon-glow-gold' : 'icon-glow-red';
+      case 'growth':
+        return 'icon-glow-gold';
+      default:
+        return 'icon-glow-blue';
+    }
+  };
+
   return (
-    <div className="glow-card-strong p-4 flex items-center gap-4">
-      <div className="flex-shrink-0 text-primary">
+    <div className={cn(getCardClass(), "p-4 flex items-center gap-4")}>
+      <div className={cn("flex-shrink-0", getIconClass())}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-muted-foreground truncate">{title}</p>
-        <p className={cn("text-2xl font-bold tracking-tight", getValueColor())}>
+        <p className={cn("text-2xl font-bold tracking-tight tabular-nums", getValueColor())}>
           {value}
         </p>
       </div>
