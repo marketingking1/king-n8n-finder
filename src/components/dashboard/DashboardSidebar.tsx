@@ -61,7 +61,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
           "fixed left-0 top-0 z-40 h-screen flex flex-col",
           "bg-[hsl(215,35%,11%)] border-r border-border",
           "transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-16" : "w-56"
+          isCollapsed ? "w-16" : "w-64"
         )}
       >
         {/* Logo Section */}
