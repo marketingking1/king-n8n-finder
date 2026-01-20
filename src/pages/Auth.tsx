@@ -163,7 +163,7 @@ export default function Auth() {
           <div className="flex flex-col items-center gap-4 mb-6">
             <img src={logo} alt="King of Languages" className="h-20 w-20 object-contain" />
             <span className="text-2xl font-display font-bold text-foreground">
-              King
+              King of Languages
             </span>
           </div>
           <h2 className="text-xl font-display font-semibold text-foreground mb-2">
