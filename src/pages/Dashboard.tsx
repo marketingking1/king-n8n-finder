@@ -23,14 +23,14 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // State para popup de aviso
+  const [showFilterWarning, setShowFilterWarning] = useState(false);
+
   // Handlers que mostram aviso na aba Macro
   const showMacroFilterWarning = useCallback(() => {
-    toast({
-      title: 'Filtro não disponível',
-      description: 'Este filtro só pode ser aplicado na aba Análise Detalhada',
-      variant: 'destructive',
-    });
-  }, [toast]);
+    setShowFilterWarning(true);
+    setTimeout(() => setShowFilterWarning(false), 2500);
+  }, []);
 
   const handleCampanhasChange = useCallback((campanhas: string[]) => {
     if (activeTab === 'macro' && campanhas.length > 0) {
@@ -214,7 +214,18 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Popup flutuante de aviso */}
+      {showFilterWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-card text-card-foreground px-6 py-4 rounded-xl shadow-2xl border border-border animate-in fade-in zoom-in duration-300 pointer-events-auto">
+            <p className="text-sm font-medium text-center">
+              Este filtro só pode ser aplicado na aba <span className="font-bold text-primary">Análise Detalhada</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       <DashboardHeader
         filters={filters}
         filterOptions={filterOptions || { campanhas: [], grupos: [], canais: [] }}
