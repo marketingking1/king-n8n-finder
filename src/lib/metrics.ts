@@ -1,5 +1,5 @@
 import { MarketingData, AggregatedMetrics, CampaignMetrics, GroupMetrics, TimeSeriesData, FunnelData, Granularity } from '@/types/dashboard';
-import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns';
+import { format, isValid, parse, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // Ticket médio do produto para cálculo correto de receita e ROAS
@@ -66,34 +66,68 @@ export function groupByGrupo(data: MarketingData[]): GroupMetrics[] {
   }));
 }
 
-function getGroupKey(dateStr: string, granularity: Granularity): string {
-  const date = parseISO(dateStr);
+function parseMarketingDate(dateStr: string): Date | null {
+  const raw = (dateStr || '').trim();
+  if (!raw) return null;
+
+  // Most common: 2026-01-20 or 2026-01-20T...
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const d = parseISO(raw.slice(0, 10));
+    return isValid(d) ? d : null;
+  }
+
+  // Sometimes sheets can format as dd/MM/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+    const d = parse(raw, 'dd/MM/yyyy', new Date());
+    return isValid(d) ? d : null;
+  }
+
+  return null;
+}
+
+function getGroupMeta(dateStr: string, granularity: Granularity): { key: string; label: string } | null {
+  const date = parseMarketingDate(dateStr);
+  if (!date) return null;
+
   switch (granularity) {
-    case 'day':
-      return format(date, 'dd/MM', { locale: ptBR });
-    case 'week':
-      return format(startOfWeek(date, { locale: ptBR }), "'Sem' w", { locale: ptBR });
-    case 'month':
-      return format(startOfMonth(date), 'MMM/yy', { locale: ptBR });
+    case 'day': {
+      const key = format(date, 'yyyy-MM-dd');
+      const label = format(date, 'dd/MM', { locale: ptBR });
+      return { key, label };
+    }
+    case 'week': {
+      // Start week on Monday to match BR convention
+      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+      const key = format(weekStart, 'yyyy-MM-dd');
+      const label = format(weekStart, "'Sem' w", { locale: ptBR });
+      return { key, label };
+    }
+    case 'month': {
+      const monthStart = startOfMonth(date);
+      const key = format(monthStart, 'yyyy-MM-dd');
+      const label = format(monthStart, 'MMM/yy', { locale: ptBR });
+      return { key, label };
+    }
   }
 }
 
 export function groupByTime(data: MarketingData[], granularity: Granularity): TimeSeriesData[] {
   const groups = data.reduce((acc, row) => {
-    const key = getGroupKey(row.data, granularity);
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(row);
+    const meta = getGroupMeta(row.data, granularity);
+    if (!meta) return acc;
+    if (!acc[meta.key]) acc[meta.key] = { label: meta.label, rows: [] };
+    acc[meta.key].rows.push(row);
     return acc;
-  }, {} as Record<string, MarketingData[]>);
+  }, {} as Record<string, { label: string; rows: MarketingData[] }>);
 
   return Object.entries(groups)
-    .map(([data, rows]) => {
-      const metrics = calculateMetrics(rows);
+    .sort(([aKey], [bKey]) => aKey.localeCompare(bKey))
+    .map(([key, group]) => {
+      const metrics = calculateMetrics(group.rows);
       const receitaCalculada = metrics.conversoes * TICKET_MEDIO;
       return {
-        data,
+        // Keep label in `data` (used by XAxis), but sort/group by ISO key to ensure correct daily totals & order
+        data: group.label,
         investimento: metrics.investimento,
         impressoes: metrics.impressoes,
         cliques: metrics.cliques,
@@ -104,8 +138,7 @@ export function groupByTime(data: MarketingData[], granularity: Granularity): Ti
         // CTR calculado APÓS agregação: SUM(cliques) / SUM(impressões) × 100
         ctr: metrics.impressoes > 0 ? (metrics.cliques / metrics.impressoes) * 100 : 0,
       };
-    })
-    .sort((a, b) => a.data.localeCompare(b.data));
+    });
 }
 
 export function calculateFunnel(data: MarketingData[]): FunnelData[] {
