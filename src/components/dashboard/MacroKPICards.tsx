@@ -4,6 +4,7 @@ import { TICKET_MEDIO } from '@/lib/metrics';
 import { formatCurrency, formatNumber, formatPercent, formatROAS, formatVariation } from '@/lib/formatters';
 import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface SheetsDataSummary {
   vendas: number;
@@ -26,6 +27,7 @@ interface MainKPICardProps {
   rawValue?: number;
   icon: React.ReactNode;
   invertVariation?: boolean;
+  index: number;
 }
 
 interface SecondaryKPICardProps {
@@ -33,6 +35,7 @@ interface SecondaryKPICardProps {
   value: string;
   variation?: number;
   icon: React.ReactNode;
+  index: number;
 }
 
 function calculateVariation(current: number, previous: number): number {
@@ -40,7 +43,35 @@ function calculateVariation(current: number, previous: number): number {
   return ((current - previous) / previous) * 100;
 }
 
-function MainKPICard({ title, value, variation, colorType, rawValue, icon, invertVariation }: MainKPICardProps) {
+const mainCardVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.9 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      delay: i * 0.08,
+      duration: 0.5,
+      ease: [0.25, 0.46, 0.45, 0.94] as const,
+    },
+  }),
+};
+
+const secondaryCardVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      delay: 0.5 + i * 0.06,
+      duration: 0.4,
+      ease: [0.25, 0.46, 0.45, 0.94] as const,
+    },
+  }),
+};
+
+function MainKPICard({ title, value, variation, colorType, rawValue, icon, invertVariation, index }: MainKPICardProps) {
   const getValueColor = () => {
     switch (colorType) {
       case 'cpa':
@@ -70,7 +101,13 @@ function MainKPICard({ title, value, variation, colorType, rawValue, icon, inver
   };
 
   return (
-    <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:border-primary/30 transition-all duration-200">
+    <motion.div
+      custom={index}
+      variants={mainCardVariants}
+      initial="hidden"
+      animate="visible"
+      className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:border-primary/30 transition-all duration-200"
+    >
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-shrink-0 p-2.5 rounded-lg bg-primary/10 text-primary">
           {icon}
@@ -86,11 +123,11 @@ function MainKPICard({ title, value, variation, colorType, rawValue, icon, inver
           <span>{formatVariation(Math.abs(variation))} vs mês anterior</span>
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }
 
-function SecondaryKPICard({ title, value, variation, icon }: SecondaryKPICardProps) {
+function SecondaryKPICard({ title, value, variation, icon, index }: SecondaryKPICardProps) {
   const getVariationColor = () => {
     if (variation === undefined) return 'text-muted-foreground';
     return variation >= 0 ? 'text-success' : 'text-destructive';
@@ -102,7 +139,13 @@ function SecondaryKPICard({ title, value, variation, icon }: SecondaryKPICardPro
   };
 
   return (
-    <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-all duration-200">
+    <motion.div
+      custom={index}
+      variants={secondaryCardVariants}
+      initial="hidden"
+      animate="visible"
+      className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-all duration-200"
+    >
       <div className="flex items-center gap-3">
         <div className="flex-shrink-0 text-primary/70">
           {icon}
@@ -119,7 +162,7 @@ function SecondaryKPICard({ title, value, variation, icon }: SecondaryKPICardPro
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -210,6 +253,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           variation={variations?.investimento}
           colorType="neutral"
           icon={<DollarSign className="h-5 w-5" />}
+          index={0}
         />
         <MainKPICard
           title="Vendas (Conversões)"
@@ -217,6 +261,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           variation={variations?.conversoes}
           colorType="growth"
           icon={<ShoppingCart className="h-5 w-5" />}
+          index={1}
         />
         <MainKPICard
           title="CPA"
@@ -226,6 +271,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           rawValue={cpa}
           invertVariation={true}
           icon={<Target className="h-5 w-5" />}
+          index={2}
         />
         <MainKPICard
           title="CAC Projetado"
@@ -233,6 +279,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           colorType="cpa"
           rawValue={cacProjetado}
           icon={<Wallet className="h-5 w-5" />}
+          index={3}
         />
         <MainKPICard
           title="ROAS"
@@ -241,6 +288,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           colorType="roas"
           rawValue={roas}
           icon={<BarChart3 className="h-5 w-5" />}
+          index={4}
         />
         <MainKPICard
           title="Taxa Conversão Lead→Venda"
@@ -248,6 +296,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           variation={taxaVariation}
           colorType="conversion"
           icon={<TrendingUp className="h-5 w-5" />}
+          index={5}
         />
       </div>
 
@@ -257,30 +306,35 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           title="Receita Total"
           value={formatCurrency(receita)}
           icon={<Wallet className="h-5 w-5" />}
+          index={0}
         />
         <SecondaryKPICard
           title="Leads Totais"
           value={formatNumber(leads)}
           variation={variations?.leads}
           icon={<Users className="h-5 w-5" />}
+          index={1}
         />
         <SecondaryKPICard
           title="Impressões"
           value={formatNumber(currentMetrics?.impressoes || 0)}
           variation={variations?.impressoes}
           icon={<Eye className="h-5 w-5" />}
+          index={2}
         />
         <SecondaryKPICard
           title="Cliques"
           value={formatNumber(currentMetrics?.cliques || 0)}
           variation={variations?.cliques}
           icon={<MousePointer className="h-5 w-5" />}
+          index={3}
         />
         <SecondaryKPICard
           title="CTR"
           value={formatPercent(currentMetrics?.ctr || 0)}
           variation={variations?.ctr}
           icon={<Percent className="h-5 w-5" />}
+          index={4}
         />
       </div>
     </div>
