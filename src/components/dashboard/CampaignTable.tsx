@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { CampaignMetrics, MarketingData } from '@/types/dashboard';
 import { getROASColor, getCPAColor, groupByGrupo } from '@/lib/metrics';
 import { formatCurrency, formatNumber, formatPercent, formatROAS } from '@/lib/formatters';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight, Download, ArrowUpDown } from 'lucide-react';
@@ -100,140 +99,147 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
 
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <TableHead 
-      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      className="cursor-pointer hover:bg-muted/50 transition-colors text-xs font-medium uppercase tracking-wide"
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <ArrowUpDown className="h-3 w-3" />
+        <ArrowUpDown className={cn(
+          "h-3 w-3 transition-colors",
+          sortField === field ? "text-primary" : "text-muted-foreground"
+        )} />
       </div>
     </TableHead>
   );
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Performance por Campanha</CardTitle>
-        <Button variant="outline" size="sm" onClick={exportCSV}>
-          <Download className="h-4 w-4 mr-2" />
+    <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h3 className="text-base font-display font-semibold text-foreground">Performance por Campanha</h3>
+        <Button variant="outline" size="sm" onClick={exportCSV} className="h-8 gap-2">
+          <Download className="h-4 w-4" />
           Exportar CSV
         </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8"></TableHead>
-                <SortHeader field="campanha">Campanha</SortHeader>
-                <SortHeader field="investimento">Investimento</SortHeader>
-                <SortHeader field="impressoes">Impressões</SortHeader>
-                <SortHeader field="cliques">Cliques</SortHeader>
-                <SortHeader field="ctr">CTR</SortHeader>
-                <SortHeader field="leads">Leads</SortHeader>
-                <SortHeader field="cpl">CPL</SortHeader>
-                <SortHeader field="conversoes">Conversões</SortHeader>
-                <SortHeader field="cpa">CPA</SortHeader>
-                <SortHeader field="receita">Receita</SortHeader>
-                <SortHeader field="roas">ROAS</SortHeader>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedData.map((row) => {
-                const roasColor = getROASColor(row.roas);
-                const cpaColor = getCPAColor(row.cpa);
-                const isExpanded = expandedCampaign === row.campanha;
-                const groupData = isExpanded ? getGroupData(row.campanha) : [];
+      </div>
+      
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-8"></TableHead>
+              <SortHeader field="campanha">Campanha</SortHeader>
+              <SortHeader field="investimento">Investimento</SortHeader>
+              <SortHeader field="impressoes">Impressões</SortHeader>
+              <SortHeader field="cliques">Cliques</SortHeader>
+              <SortHeader field="ctr">CTR</SortHeader>
+              <SortHeader field="leads">Leads</SortHeader>
+              <SortHeader field="cpl">CPL</SortHeader>
+              <SortHeader field="conversoes">Conversões</SortHeader>
+              <SortHeader field="cpa">CPA</SortHeader>
+              <SortHeader field="receita">Receita</SortHeader>
+              <SortHeader field="roas">ROAS</SortHeader>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedData.map((row) => {
+              const roasColor = getROASColor(row.roas);
+              const cpaColor = getCPAColor(row.cpa);
+              const isExpanded = expandedCampaign === row.campanha;
+              const groupData = isExpanded ? getGroupData(row.campanha) : [];
 
-                return (
-                  <Collapsible key={row.campanha} open={isExpanded} asChild>
-                    <>
-                      <CollapsibleTrigger asChild>
-                        <TableRow 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setExpandedCampaign(isExpanded ? null : row.campanha)}
-                        >
-                          <TableCell>
-                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                          </TableCell>
-                          <TableCell className="font-medium max-w-[200px] truncate">{row.campanha}</TableCell>
-                          <TableCell>{formatCurrency(row.investimento)}</TableCell>
-                          <TableCell>{formatNumber(row.impressoes)}</TableCell>
-                          <TableCell>{formatNumber(row.cliques)}</TableCell>
-                          <TableCell>{formatPercent(row.ctr)}</TableCell>
-                          <TableCell>{formatNumber(row.leads)}</TableCell>
-                          <TableCell>{formatCurrency(row.cpl)}</TableCell>
-                          <TableCell>{formatNumber(row.conversoes)}</TableCell>
-                          <TableCell className={cn(
-                            cpaColor === 'destructive' && 'text-destructive font-medium',
-                            cpaColor === 'warning' && 'text-warning font-medium',
-                            cpaColor === 'success' && 'text-success font-medium'
-                          )}>
-                            {formatCurrency(row.cpa)}
-                          </TableCell>
-                          <TableCell>{formatCurrency(row.receita)}</TableCell>
-                          <TableCell className={cn(
-                            'font-medium',
-                            roasColor === 'success' && 'text-success',
-                            roasColor === 'destructive' && 'text-destructive'
-                          )}>
-                            {formatROAS(row.roas)}
-                          </TableCell>
-                        </TableRow>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent asChild>
-                        <>
-                          {groupData.map((group) => (
-                            <TableRow key={group.grupo_anuncio} className="bg-muted/30">
-                              <TableCell></TableCell>
-                              <TableCell className="pl-8 text-muted-foreground">{group.grupo_anuncio}</TableCell>
-                              <TableCell>{formatCurrency(group.investimento)}</TableCell>
-                              <TableCell>{formatNumber(group.impressoes)}</TableCell>
-                              <TableCell>{formatNumber(group.cliques)}</TableCell>
-                              <TableCell>{formatPercent(group.ctr)}</TableCell>
-                              <TableCell>{formatNumber(group.leads)}</TableCell>
-                              <TableCell>{formatCurrency(group.cpl)}</TableCell>
-                              <TableCell>{formatNumber(group.conversoes)}</TableCell>
-                              <TableCell className={cn(
-                                getCPAColor(group.cpa) === 'destructive' && 'text-destructive',
-                                getCPAColor(group.cpa) === 'warning' && 'text-warning'
-                              )}>
-                                {formatCurrency(group.cpa)}
-                              </TableCell>
-                              <TableCell>{formatCurrency(group.receita)}</TableCell>
-                              <TableCell className={cn(
-                                getROASColor(group.roas) === 'success' && 'text-success',
-                                getROASColor(group.roas) === 'destructive' && 'text-destructive'
-                              )}>
-                                {formatROAS(group.roas)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </>
-                      </CollapsibleContent>
-                    </>
-                  </Collapsible>
-                );
-              })}
-              {/* Totals Row */}
-              <TableRow className="bg-muted font-bold border-t-2">
-                <TableCell></TableCell>
-                <TableCell>TOTAL</TableCell>
-                <TableCell>{formatCurrency(totals.investimento)}</TableCell>
-                <TableCell>{formatNumber(totals.impressoes)}</TableCell>
-                <TableCell>{formatNumber(totals.cliques)}</TableCell>
-                <TableCell>{formatPercent(totalMetrics.ctr)}</TableCell>
-                <TableCell>{formatNumber(totals.leads)}</TableCell>
-                <TableCell>{formatCurrency(totalMetrics.cpl)}</TableCell>
-                <TableCell>{formatNumber(totals.conversoes)}</TableCell>
-                <TableCell>{formatCurrency(totalMetrics.cpa)}</TableCell>
-                <TableCell>{formatCurrency(totals.receita)}</TableCell>
-                <TableCell>{formatROAS(totalMetrics.roas)}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              return (
+                <Collapsible key={row.campanha} open={isExpanded} asChild>
+                  <>
+                    <CollapsibleTrigger asChild>
+                      <TableRow 
+                        className="cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => setExpandedCampaign(isExpanded ? null : row.campanha)}
+                      >
+                        <TableCell className="py-3">
+                          {isExpanded ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] truncate text-sm">{row.campanha}</TableCell>
+                        <TableCell className="text-sm">{formatCurrency(row.investimento)}</TableCell>
+                        <TableCell className="text-sm">{formatNumber(row.impressoes)}</TableCell>
+                        <TableCell className="text-sm">{formatNumber(row.cliques)}</TableCell>
+                        <TableCell className="text-sm">{formatPercent(row.ctr)}</TableCell>
+                        <TableCell className="text-sm">{formatNumber(row.leads)}</TableCell>
+                        <TableCell className="text-sm">{formatCurrency(row.cpl)}</TableCell>
+                        <TableCell className="text-sm">{formatNumber(row.conversoes)}</TableCell>
+                        <TableCell className={cn(
+                          "text-sm font-medium",
+                          cpaColor === 'destructive' && 'text-destructive',
+                          cpaColor === 'warning' && 'text-warning',
+                          cpaColor === 'success' && 'text-success'
+                        )}>
+                          {formatCurrency(row.cpa)}
+                        </TableCell>
+                        <TableCell className="text-sm">{formatCurrency(row.receita)}</TableCell>
+                        <TableCell className={cn(
+                          'text-sm font-medium',
+                          roasColor === 'success' && 'text-success',
+                          roasColor === 'destructive' && 'text-destructive'
+                        )}>
+                          {formatROAS(row.roas)}
+                        </TableCell>
+                      </TableRow>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent asChild>
+                      <>
+                        {groupData.map((group) => (
+                          <TableRow key={group.grupo_anuncio} className="bg-[hsl(216,30%,14%)]">
+                            <TableCell></TableCell>
+                            <TableCell className="pl-8 text-muted-foreground text-sm">{group.grupo_anuncio}</TableCell>
+                            <TableCell className="text-sm">{formatCurrency(group.investimento)}</TableCell>
+                            <TableCell className="text-sm">{formatNumber(group.impressoes)}</TableCell>
+                            <TableCell className="text-sm">{formatNumber(group.cliques)}</TableCell>
+                            <TableCell className="text-sm">{formatPercent(group.ctr)}</TableCell>
+                            <TableCell className="text-sm">{formatNumber(group.leads)}</TableCell>
+                            <TableCell className="text-sm">{formatCurrency(group.cpl)}</TableCell>
+                            <TableCell className="text-sm">{formatNumber(group.conversoes)}</TableCell>
+                            <TableCell className={cn(
+                              "text-sm",
+                              getCPAColor(group.cpa) === 'destructive' && 'text-destructive',
+                              getCPAColor(group.cpa) === 'warning' && 'text-warning'
+                            )}>
+                              {formatCurrency(group.cpa)}
+                            </TableCell>
+                            <TableCell className="text-sm">{formatCurrency(group.receita)}</TableCell>
+                            <TableCell className={cn(
+                              "text-sm",
+                              getROASColor(group.roas) === 'success' && 'text-success',
+                              getROASColor(group.roas) === 'destructive' && 'text-destructive'
+                            )}>
+                              {formatROAS(group.roas)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    </CollapsibleContent>
+                  </>
+                </Collapsible>
+              );
+            })}
+            {/* Totals Row */}
+            <TableRow className="bg-[hsl(216,30%,14%)] font-semibold border-t-2 border-border">
+              <TableCell></TableCell>
+              <TableCell className="text-sm">TOTAL</TableCell>
+              <TableCell className="text-sm">{formatCurrency(totals.investimento)}</TableCell>
+              <TableCell className="text-sm">{formatNumber(totals.impressoes)}</TableCell>
+              <TableCell className="text-sm">{formatNumber(totals.cliques)}</TableCell>
+              <TableCell className="text-sm">{formatPercent(totalMetrics.ctr)}</TableCell>
+              <TableCell className="text-sm">{formatNumber(totals.leads)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(totalMetrics.cpl)}</TableCell>
+              <TableCell className="text-sm">{formatNumber(totals.conversoes)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(totalMetrics.cpa)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(totals.receita)}</TableCell>
+              <TableCell className="text-sm">{formatROAS(totalMetrics.roas)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }
