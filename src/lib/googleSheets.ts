@@ -1,4 +1,4 @@
-import { endOfDay, isValid, parseISO, startOfDay } from 'date-fns';
+import { endOfDay, format, isValid, parse, parseISO, startOfDay } from 'date-fns';
 
 const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 
@@ -28,6 +28,112 @@ export interface GoogleSheetsData {
   vendas: number;
   leads: number;
   taxaConversao: number;
+}
+
+function normalizeHeader(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    // remove accents/diacritics
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function indexToColumnLetter(index: number): string {
+  // 0 -> A, 25 -> Z, 26 -> AA
+  let n = index + 1;
+  let s = '';
+  while (n > 0) {
+    const mod = (n - 1) % 26;
+    s = String.fromCharCode(65 + mod) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function parseSheetDate(dateStr: string): Date | null {
+  const raw = (dateStr || '').trim();
+  if (!raw) return null;
+
+  // Most common: 2026-01-20 or 2026-01-20T... or 2026-01-20 00:00:00
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const d = parseISO(raw.slice(0, 10));
+    return isValid(d) ? d : null;
+  }
+
+  // Sometimes sheets can format as dd/MM/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+    const d = parse(raw, 'dd/MM/yyyy', new Date());
+    return isValid(d) ? d : null;
+  }
+
+  return null;
+}
+
+type SheetColumnIndexes = {
+  canal: number;
+  campanha: number;
+  data: number;
+  grupo_anuncio: number;
+  impressoes: number;
+  cliques: number;
+  investimento: number;
+  leads: number;
+  conversoes: number;
+  receita: number;
+};
+
+const DEFAULT_INDEXES: SheetColumnIndexes = {
+  canal: 0,
+  campanha: 1,
+  data: 2,
+  grupo_anuncio: 3,
+  impressoes: 4,
+  cliques: 5,
+  investimento: 6,
+  leads: 7,
+  conversoes: 8,
+  receita: 9,
+};
+
+function findColumnIndex(headers: string[], candidates: string[]): number {
+  for (const candidate of candidates) {
+    const idx = headers.indexOf(candidate);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function resolveSheetColumnIndexes(headerRow: unknown[]): SheetColumnIndexes {
+  const normalized = headerRow.map(normalizeHeader);
+  if (normalized.every(h => !h)) return DEFAULT_INDEXES;
+
+  const resolved: Partial<SheetColumnIndexes> = {
+    canal: findColumnIndex(normalized, ['canal', 'channel']),
+    campanha: findColumnIndex(normalized, ['campanha', 'campaign name', 'campaign', 'campaign_name']),
+    data: findColumnIndex(normalized, ['data', 'date']),
+    grupo_anuncio: findColumnIndex(normalized, ['grupo_anuncio', 'grupo anuncio', 'grupo', 'ad group', 'adgroup']),
+    impressoes: findColumnIndex(normalized, ['impressoes', 'imressoes', 'impressions']),
+    cliques: findColumnIndex(normalized, ['cliques', 'clicks']),
+    investimento: findColumnIndex(normalized, ['investimento', 'gasto', 'spend', 'custo', 'cost']),
+    leads: findColumnIndex(normalized, ['leads']),
+    conversoes: findColumnIndex(normalized, ['conversoes', 'conversao', 'vendas', 'conversions']),
+    receita: findColumnIndex(normalized, ['receita', 'revenue']),
+  };
+
+  // Fallback to defaults when a header isn't found.
+  return {
+    canal: resolved.canal ?? DEFAULT_INDEXES.canal,
+    campanha: resolved.campanha ?? DEFAULT_INDEXES.campanha,
+    data: resolved.data ?? DEFAULT_INDEXES.data,
+    grupo_anuncio: resolved.grupo_anuncio ?? DEFAULT_INDEXES.grupo_anuncio,
+    impressoes: resolved.impressoes ?? DEFAULT_INDEXES.impressoes,
+    cliques: resolved.cliques ?? DEFAULT_INDEXES.cliques,
+    investimento: resolved.investimento ?? DEFAULT_INDEXES.investimento,
+    leads: resolved.leads ?? DEFAULT_INDEXES.leads,
+    conversoes: resolved.conversoes ?? DEFAULT_INDEXES.conversoes,
+    receita: resolved.receita ?? DEFAULT_INDEXES.receita,
+  };
 }
 
 function parseNumber(value: string | number | undefined | null): number {
@@ -64,12 +170,44 @@ export interface MacroSheetsData {
 
 // Fetch data from tabela_objetivo (mídia paga - investment/costs)
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
-  // Use A:J range (excludes ID columns K,L) to ensure all data rows are fetched
-  const range = `${SHEET_NAME_OBJETIVO}!A:J`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+  // Fetch header first with a wide but tiny range.
+  // This makes the ingestion robust to sheet "updates" that insert/reorder columns (a common reason
+  // for daily investment to suddenly look wrong).
+  const headerRange = `${SHEET_NAME_OBJETIVO}!A1:AZ1`;
+  const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${headerRange}?key=${GOOGLE_API_KEY}`;
 
   try {
-    const response = await fetch(url);
+    const headerResponse = await fetch(headerUrl, { cache: 'no-store' });
+    if (!headerResponse.ok) {
+      const errorData = await headerResponse.json();
+      console.error('Google Sheets API error (header):', errorData);
+      throw new Error(`Failed to fetch Google Sheets header: ${headerResponse.status}`);
+    }
+
+    const headerJson = await headerResponse.json();
+    const headerRow: unknown[] = (headerJson.values?.[0] ?? []) as unknown[];
+    const idx = resolveSheetColumnIndexes(headerRow);
+
+    // Compute a minimal range that still includes all required columns.
+    const lastIndex = Math.max(
+      idx.canal,
+      idx.campanha,
+      idx.data,
+      idx.grupo_anuncio,
+      idx.impressoes,
+      idx.cliques,
+      idx.investimento,
+      idx.leads,
+      idx.conversoes,
+      idx.receita
+    );
+
+    // Keep the range narrow to avoid response truncation issues.
+    const lastCol = indexToColumnLetter(lastIndex);
+    const dataRange = `${SHEET_NAME_OBJETIVO}!A:${lastCol}`;
+    const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${dataRange}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+
+    const response = await fetch(dataUrl, { cache: 'no-store' });
     
     if (!response.ok) {
       const errorData = await response.json();
@@ -79,27 +217,36 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
 
     const data = await response.json();
     const values: string[][] = data.values || [];
+    const effectiveHeader = values[0] || [];
+    const effectiveIdx = resolveSheetColumnIndexes(effectiveHeader);
     
     // Skip header row and filter out summary rows
     // NOTE: Sheets API trims trailing empty cells; do not rely on row.length.
     const dataRows = values.slice(1).filter(row => {
-      const canal = row[0] || '';
-      const date = row[2] || '';
+      const canal = row[effectiveIdx.canal] || '';
+      const date = row[effectiveIdx.data] || '';
       return Boolean(canal) && !canal.includes('()') && Boolean(date);
     });
 
-    const rows: SheetsMarketingRow[] = dataRows.map(row => ({
-      canal: row[0] || '',
-      campanha: row[1] || '',
-      data: row[2] || '',
-      grupo_anuncio: row[3] || '',
-      impressoes: parseNumber(row[4]),
-      cliques: parseNumber(row[5]),
-      investimento: parseNumber(row[6]),
-      leads: parseNumber(row[7]),
-      conversoes: parseNumber(row[8]),
-      receita: parseNumber(row[9]),
-    }));
+    const rows: SheetsMarketingRow[] = dataRows.map(row => {
+      const rawDate = row[effectiveIdx.data] || '';
+      const parsedDate = parseSheetDate(rawDate);
+      // Normalize to ISO yyyy-MM-dd for stable filtering/grouping, regardless of how Sheets formatted it.
+      const normalizedDate = parsedDate ? format(parsedDate, 'yyyy-MM-dd') : rawDate;
+
+      return {
+        canal: row[effectiveIdx.canal] || '',
+        campanha: row[effectiveIdx.campanha] || '',
+        data: normalizedDate,
+        grupo_anuncio: row[effectiveIdx.grupo_anuncio] || '',
+        impressoes: parseNumber(row[effectiveIdx.impressoes]),
+        cliques: parseNumber(row[effectiveIdx.cliques]),
+        investimento: parseNumber(row[effectiveIdx.investimento]),
+        leads: parseNumber(row[effectiveIdx.leads]),
+        conversoes: parseNumber(row[effectiveIdx.conversoes]),
+        receita: parseNumber(row[effectiveIdx.receita]),
+      };
+    });
 
     // Note: vendas/leads totals here are from tracked paid media only
     const vendas = rows.reduce((sum, row) => sum + row.conversoes, 0);
@@ -156,8 +303,9 @@ export function filterByDateRange(
   return rows.filter(row => {
     if (!row.data) return false;
     // IMPORTANT: do not use `new Date('YYYY-MM-DD')` (UTC parsing causes off-by-one-day in BR).
-    const rowDate = parseISO(row.data);
-    if (!isValid(rowDate)) return false;
+    // Also handle dd/MM/yyyy and timestamps that sometimes appear after sheet updates.
+    const rowDate = parseSheetDate(row.data);
+    if (!rowDate || !isValid(rowDate)) return false;
     if (fromDay && rowDate < fromDay) return false;
     if (toDay && rowDate > toDay) return false;
     return true;
