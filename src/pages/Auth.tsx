@@ -160,7 +160,7 @@ export default function Auth() {
       <div className="w-full max-w-[400px] animate-fade-in">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-6">
+          <div className="flex flex-col items-center gap-4 mb-6">
             <img src={logo} alt="King of Languages" className="h-20 w-20 object-contain" />
             <span className="text-2xl font-display font-bold text-foreground">
               King of Languages
