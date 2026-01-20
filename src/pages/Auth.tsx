@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Crown, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -159,8 +160,8 @@ export default function Auth() {
       <div className="w-full max-w-[400px] animate-fade-in">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Crown className="h-10 w-10 text-primary" />
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <img src={logo} alt="King of Languages" className="h-12 w-12 object-contain" />
             <span className="text-2xl font-display font-bold text-foreground">
               King of Languages
             </span>
