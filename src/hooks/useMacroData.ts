@@ -45,7 +45,13 @@ export function useMacroData() {
   const { data: macroData, isLoading: isLoadingMacro, error: macroError } = useQuery({
     queryKey: ['macro-sheets-data'],
     queryFn: fetchMacroSheetsData,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: true,
   });
 
   const today = new Date();

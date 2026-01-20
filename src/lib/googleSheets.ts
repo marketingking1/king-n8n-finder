@@ -54,9 +54,31 @@ function indexToColumnLetter(index: number): string {
   return s;
 }
 
-function parseSheetDate(dateStr: string): Date | null {
-  const raw = (dateStr || '').trim();
+function parseSheetDate(value: unknown): Date | null {
+  if (value == null || value === '') return null;
+
+  // Google Sheets can sometimes return "serial" date numbers (e.g. 46041)
+  // when a column loses date formatting or valueRenderOption changes.
+  // In Sheets/Excel, day 1 is 1899-12-31; the common JS-friendly base is 1899-12-30.
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const serial = value;
+    const base = new Date(1899, 11, 30);
+    const d = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
+    return isValid(d) ? d : null;
+  }
+
+  const raw = String(value).trim();
   if (!raw) return null;
+
+  // Serial date but as a string
+  if (/^\d{4,6}$/.test(raw)) {
+    const serial = Number(raw);
+    if (Number.isFinite(serial)) {
+      const base = new Date(1899, 11, 30);
+      const d = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
+      return isValid(d) ? d : null;
+    }
+  }
 
   // Most common: 2026-01-20 or 2026-01-20T... or 2026-01-20 00:00:00
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
@@ -196,10 +218,16 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   // for daily investment to suddenly look wrong).
   // Read a few top rows to find the actual header row (sheet updates sometimes insert title rows).
   const headerRange = `${SHEET_NAME_OBJETIVO}!A1:AZ5`;
-  const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${headerRange}?key=${GOOGLE_API_KEY}`;
+  const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${headerRange}?key=${GOOGLE_API_KEY}&_=${Date.now()}`;
 
   try {
-    const headerResponse = await fetch(headerUrl, { cache: 'no-store' });
+    const headerResponse = await fetch(headerUrl, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    });
     if (!headerResponse.ok) {
       const errorData = await headerResponse.json();
       console.error('Google Sheets API error (header):', errorData);
@@ -241,6 +269,12 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     const headerRow: unknown[] = (headerRows[bestRowIndex] ?? []) as unknown[];
     const idx = resolveSheetColumnIndexes(headerRow);
 
+    // If the sheet changed so much that we can't even find the key columns,
+    // it's safer to fail than to calculate wrong investments.
+    if (idx.data == null || idx.investimento == null || idx.canal == null) {
+      throw new Error('Não foi possível mapear colunas (data/investimento/canal) na planilha.');
+    }
+
     // Compute a minimal range that still includes all required columns.
     const lastIndex = Math.max(
       idx.canal,
@@ -258,9 +292,15 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     // Keep the range narrow to avoid response truncation issues.
     const lastCol = indexToColumnLetter(lastIndex);
     const dataRange = `${SHEET_NAME_OBJETIVO}!A${headerRowNumber}:${lastCol}`;
-    const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${dataRange}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+    const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${dataRange}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&_=${Date.now()}`;
 
-    const response = await fetch(dataUrl, { cache: 'no-store' });
+    const response = await fetch(dataUrl, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    });
     
     if (!response.ok) {
       const errorData = await response.json();
@@ -269,7 +309,7 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     }
 
     const data = await response.json();
-    const values: string[][] = data.values || [];
+    const values: any[][] = data.values || [];
 
     // Useful to debug "investment bugs" right after sheet updates.
     // Only prints in dev builds.
@@ -287,12 +327,13 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     // NOTE: Sheets API trims trailing empty cells; do not rely on row.length.
     const dataRows = values.slice(1).filter(row => {
       const canal = row[effectiveIdx.canal] || '';
-      const date = row[effectiveIdx.data] || '';
-      return Boolean(canal) && !canal.includes('()') && Boolean(date);
+      const dateValue = row[effectiveIdx.data];
+      const date = parseSheetDate(dateValue);
+      return Boolean(canal) && !String(canal).includes('()') && Boolean(date);
     });
 
     const rows: SheetsMarketingRow[] = dataRows.map(row => {
-      const rawDate = row[effectiveIdx.data] || '';
+      const rawDate = row[effectiveIdx.data];
       const parsedDate = parseSheetDate(rawDate);
       // Normalize to ISO yyyy-MM-dd for stable filtering/grouping, regardless of how Sheets formatted it.
       const normalizedDate = parsedDate ? format(parsedDate, 'yyyy-MM-dd') : rawDate;
@@ -300,7 +341,7 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
       return {
         canal: row[effectiveIdx.canal] || '',
         campanha: row[effectiveIdx.campanha] || '',
-        data: normalizedDate,
+        data: String(normalizedDate ?? ''),
         grupo_anuncio: row[effectiveIdx.grupo_anuncio] || '',
         impressoes: parseNumber(row[effectiveIdx.impressoes]),
         cliques: parseNumber(row[effectiveIdx.cliques]),
@@ -326,10 +367,16 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
 // Fetch data from Dados_macro_vendas (ALL sales - organic + paid - monthly summary)
 export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
   const range = `${SHEET_NAME_MACRO}!A:C`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_MACRO}/values/${range}?key=${GOOGLE_API_KEY}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_MACRO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&_=${Date.now()}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    });
     
     if (!response.ok) {
       const errorData = await response.json();
