@@ -36,7 +36,10 @@ function normalizeHeader(value: unknown): string {
     .toLowerCase()
     // remove accents/diacritics
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+    .replace(/[\u0300-\u036f]/g, '')
+    // normalize separators
+    .replace(/[_\-]+/g, ' ')
+    .replace(/\s+/g, ' ');
 }
 
 function indexToColumnLetter(index: number): string {
@@ -97,11 +100,29 @@ const DEFAULT_INDEXES: SheetColumnIndexes = {
 };
 
 function findColumnIndex(headers: string[], candidates: string[]): number {
+  // Prefer exact match, then "contains" match (handles headers like "Gasto (R$)" after sheet updates).
   for (const candidate of candidates) {
     const idx = headers.indexOf(candidate);
     if (idx >= 0) return idx;
   }
+  for (const candidate of candidates) {
+    const idx = headers.findIndex(h => h.includes(candidate));
+    if (idx >= 0) return idx;
+  }
   return -1;
+}
+
+function scoreHeaderRow(headers: string[], candidates: Record<keyof SheetColumnIndexes, string[]>): number {
+  let score = 0;
+  for (const key of Object.keys(candidates) as (keyof SheetColumnIndexes)[]) {
+    if (findColumnIndex(headers, candidates[key]) >= 0) score += 1;
+  }
+  return score;
+}
+
+function isMostlyEmptyRow(row: unknown[]): boolean {
+  const normalized = row.map(normalizeHeader).filter(Boolean);
+  return normalized.length === 0;
 }
 
 function resolveSheetColumnIndexes(headerRow: unknown[]): SheetColumnIndexes {
@@ -173,7 +194,8 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   // Fetch header first with a wide but tiny range.
   // This makes the ingestion robust to sheet "updates" that insert/reorder columns (a common reason
   // for daily investment to suddenly look wrong).
-  const headerRange = `${SHEET_NAME_OBJETIVO}!A1:AZ1`;
+  // Read a few top rows to find the actual header row (sheet updates sometimes insert title rows).
+  const headerRange = `${SHEET_NAME_OBJETIVO}!A1:AZ5`;
   const headerUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${headerRange}?key=${GOOGLE_API_KEY}`;
 
   try {
@@ -185,7 +207,38 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     }
 
     const headerJson = await headerResponse.json();
-    const headerRow: unknown[] = (headerJson.values?.[0] ?? []) as unknown[];
+    const headerRows: unknown[][] = (headerJson.values ?? []) as unknown[][];
+
+    const columnCandidates: Record<keyof SheetColumnIndexes, string[]> = {
+      canal: ['canal', 'channel'],
+      campanha: ['campanha', 'campaign name', 'campaign', 'campaign name (plataforma)', 'campaign_name'],
+      data: ['data', 'date'],
+      grupo_anuncio: ['grupo_anuncio', 'grupo anuncio', 'grupo', 'ad group', 'adgroup'],
+      impressoes: ['impressoes', 'imressoes', 'impressions'],
+      cliques: ['cliques', 'clicks'],
+      investimento: ['investimento', 'gasto', 'spend', 'custo', 'cost'],
+      leads: ['leads'],
+      conversoes: ['conversoes', 'conversao', 'vendas', 'conversions'],
+      receita: ['receita', 'revenue'],
+    };
+
+    // Pick the best header row among the first 5 rows.
+    let bestRowIndex = 0;
+    let bestScore = -1;
+    for (let i = 0; i < headerRows.length; i += 1) {
+      const row = headerRows[i] ?? [];
+      if (isMostlyEmptyRow(row)) continue;
+      const normalized = row.map(normalizeHeader);
+      const score = scoreHeaderRow(normalized, columnCandidates);
+      if (score > bestScore) {
+        bestScore = score;
+        bestRowIndex = i;
+      }
+    }
+
+    // Header row in Sheets is 1-based.
+    const headerRowNumber = bestRowIndex + 1;
+    const headerRow: unknown[] = (headerRows[bestRowIndex] ?? []) as unknown[];
     const idx = resolveSheetColumnIndexes(headerRow);
 
     // Compute a minimal range that still includes all required columns.
@@ -204,7 +257,7 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
 
     // Keep the range narrow to avoid response truncation issues.
     const lastCol = indexToColumnLetter(lastIndex);
-    const dataRange = `${SHEET_NAME_OBJETIVO}!A:${lastCol}`;
+    const dataRange = `${SHEET_NAME_OBJETIVO}!A${headerRowNumber}:${lastCol}`;
     const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${dataRange}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
 
     const response = await fetch(dataUrl, { cache: 'no-store' });
@@ -217,6 +270,16 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
 
     const data = await response.json();
     const values: string[][] = data.values || [];
+
+    // Useful to debug "investment bugs" right after sheet updates.
+    // Only prints in dev builds.
+    if ((import.meta as any)?.env?.DEV) {
+      const previewHeader = (values[0] || []).map(normalizeHeader);
+      console.debug('[Sheets] headerRowNumber', headerRowNumber);
+      console.debug('[Sheets] resolvedIndexes', idx);
+      console.debug('[Sheets] effectiveHeader(0)', previewHeader);
+      console.debug('[Sheets] fetchedRows', Math.max(0, values.length - 1));
+    }
     const effectiveHeader = values[0] || [];
     const effectiveIdx = resolveSheetColumnIndexes(effectiveHeader);
     
