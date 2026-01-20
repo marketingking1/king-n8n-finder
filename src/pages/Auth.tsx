@@ -161,7 +161,7 @@ export default function Auth() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <img src={logo} alt="King of Languages" className="h-12 w-12 object-contain" />
+            <img src={logo} alt="King of Languages" className="h-20 w-20 object-contain" />
             <span className="text-2xl font-display font-bold text-foreground">
               King of Languages
             </span>
