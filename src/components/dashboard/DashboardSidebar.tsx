@@ -69,7 +69,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
           "flex items-center h-16 px-4 border-b border-border",
           isCollapsed ? "justify-center" : "gap-3"
         )}>
-          <img src={logo} alt="King of Languages" className="h-8 w-8 object-contain" />
+          <img src={logo} alt="King of Languages" className="h-16 w-16 object-contain" />
           {!isCollapsed && (
             <span className="font-display font-semibold text-foreground truncate">
               King of Languages
