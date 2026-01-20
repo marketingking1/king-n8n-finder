@@ -4,6 +4,7 @@ import { ChartCard } from './ChartCard';
 
 interface CTRChartProps {
   data: TimeSeriesData[];
+  delay?: number;
 }
 
 /**
@@ -12,7 +13,7 @@ interface CTRChartProps {
  * 
  * NÃO usar média de CTR diário - usar dados já agregados.
  */
-export function CTRChart({ data }: CTRChartProps) {
+export function CTRChart({ data, delay = 0 }: CTRChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -28,7 +29,7 @@ export function CTRChart({ data }: CTRChartProps) {
   };
 
   return (
-    <ChartCard title="CTR Semanal" subtitle="Click-through rate por semana">
+    <ChartCard title="CTR Semanal" subtitle="Click-through rate por semana" delay={delay}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>

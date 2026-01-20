@@ -5,6 +5,7 @@ import { CTRChart } from './charts/CTRChart';
 import { ConversionRateChart } from './charts/ConversionRateChart';
 import { CPAChart } from './charts/CPAChart';
 import { ROASByCampaignChart } from './charts/ROASByCampaignChart';
+import { motion } from 'framer-motion';
 
 interface TrendChartsProps {
   timeSeriesData: TimeSeriesData[];
@@ -13,23 +14,55 @@ interface TrendChartsProps {
   campaignMetrics?: CampaignMetrics[];
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const rowVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
 export function TrendCharts({ timeSeriesData, weeklyTimeSeriesData, funnelData, campaignMetrics = [] }: TrendChartsProps) {
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* First row: Investment, Impressions, CTR */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <InvestmentChart data={timeSeriesData} />
-        <ImpressionsChart data={timeSeriesData} />
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        variants={rowVariants}
+      >
+        <InvestmentChart data={timeSeriesData} delay={0} />
+        <ImpressionsChart data={timeSeriesData} delay={0.08} />
         {/* CTR usa dados semanais para cálculo correto: SUM(cliques)/SUM(impressões) */}
-        <CTRChart data={weeklyTimeSeriesData} />
-      </div>
+        <CTRChart data={weeklyTimeSeriesData} delay={0.16} />
+      </motion.div>
       
       {/* Second row: Conversion Rate, CPA, ROAS by Campaign */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ConversionRateChart data={timeSeriesData} />
-        <CPAChart data={timeSeriesData} />
-        <ROASByCampaignChart data={campaignMetrics} />
-      </div>
-    </div>
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        variants={rowVariants}
+      >
+        <ConversionRateChart data={timeSeriesData} delay={0.24} />
+        <CPAChart data={timeSeriesData} delay={0.32} />
+        <ROASByCampaignChart data={campaignMetrics} delay={0.4} />
+      </motion.div>
+    </motion.div>
   );
 }
