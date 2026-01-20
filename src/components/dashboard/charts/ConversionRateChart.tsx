@@ -1,6 +1,5 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { TimeSeriesData } from '@/types/dashboard';
-import { formatPercent } from '@/lib/formatters';
 import { ChartCard } from './ChartCard';
 import { useMemo } from 'react';
 
@@ -10,54 +9,85 @@ interface ConversionRateChartProps {
 
 export function ConversionRateChart({ data }: ConversionRateChartProps) {
   const chartData = useMemo(() => {
-    // Group by week/month to show conversion rate over time
     return data.map(item => ({
       ...item,
       conversionRate: item.leads > 0 ? (item.conversoes / item.leads) * 100 : 0,
     }));
   }, [data]);
 
-  // Get max value for the chart
-  const maxRate = Math.max(...chartData.map(d => d.conversionRate), 15);
+  // Calculate average for reference
+  const avgRate = useMemo(() => {
+    const rates = chartData.filter(d => d.conversionRate > 0).map(d => d.conversionRate);
+    return rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+  }, [chartData]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const rate = payload[0].value;
+      const isAboveAvg = rate >= avgRate;
+      
+      return (
+        <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-3 shadow-lg">
+          <p className="text-xs text-muted-foreground mb-1">{label}</p>
+          <p className={`text-sm font-semibold ${isAboveAvg ? 'text-success' : 'text-warning'}`}>
+            {rate.toFixed(2)}%
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Média: {avgRate.toFixed(2)}%
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <ChartCard title="Qual foi a minha taxa de conversão?">
+    <ChartCard title="Taxa de Conversão" subtitle="Leads convertidos em vendas">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+        <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          <defs>
+            <linearGradient id="conversionGradientHigh" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(160, 84%, 39%)" stopOpacity={1} />
+              <stop offset="100%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.5} />
+            </linearGradient>
+            <linearGradient id="conversionGradientLow" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(38, 92%, 50%)" stopOpacity={1} />
+              <stop offset="100%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.5} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke="hsl(217, 20%, 20%)" 
+            vertical={false}
+          />
           <XAxis 
             dataKey="data" 
-            stroke="hsl(var(--muted-foreground))"
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-            axisLine={{ stroke: 'hsl(var(--border))' }}
+            stroke="hsl(218, 11%, 65%)"
+            tick={{ fill: 'hsl(218, 11%, 65%)', fontSize: 10 }}
+            axisLine={false}
             tickLine={false}
+            dy={10}
           />
           <YAxis 
-            stroke="hsl(var(--muted-foreground))"
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+            stroke="hsl(218, 11%, 65%)"
+            tick={{ fill: 'hsl(218, 11%, 65%)', fontSize: 10 }}
             tickFormatter={(value) => `${value.toFixed(0)}%`}
             axisLine={false}
             tickLine={false}
-            domain={[0, Math.ceil(maxRate)]}
+            dx={-5}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'hsl(var(--card))', 
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
-            }}
-            labelStyle={{ color: 'hsl(var(--foreground))' }}
-            formatter={(value: number) => [`${value.toFixed(2)}%`, 'Taxa de Conversão']}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Bar 
             dataKey="conversionRate" 
-            fill="hsl(var(--chart-magenta))"
             radius={[4, 4, 0, 0]}
           >
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill="hsl(var(--chart-magenta))"
-                opacity={0.8}
+                fill={entry.conversionRate >= avgRate 
+                  ? 'url(#conversionGradientHigh)' 
+                  : 'url(#conversionGradientLow)'
+                }
               />
             ))}
           </Bar>
