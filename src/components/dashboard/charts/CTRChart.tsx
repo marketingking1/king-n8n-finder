@@ -1,25 +1,22 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { TimeSeriesData } from '@/types/dashboard';
-import { formatPercent } from '@/lib/formatters';
 import { ChartCard } from './ChartCard';
-import { useMemo } from 'react';
 
 interface CTRChartProps {
   data: TimeSeriesData[];
 }
 
+/**
+ * CTR Semanal - O CTR já vem calculado corretamente em TimeSeriesData:
+ * CTR = SUM(cliques) / SUM(impressões) × 100 (após agregação por período)
+ * 
+ * NÃO usar média de CTR diário - usar dados já agregados.
+ */
 export function CTRChart({ data }: CTRChartProps) {
-  const chartData = useMemo(() => {
-    return data.map(item => ({
-      ...item,
-      ctr: item.impressoes > 0 ? (item.cliques / item.impressoes) * 100 : 0,
-    }));
-  }, [data]);
-
   return (
     <ChartCard title="CTR por semana">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+        <LineChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
           <XAxis 
             dataKey="data" 
             stroke="hsl(var(--muted-foreground))"
@@ -30,7 +27,7 @@ export function CTRChart({ data }: CTRChartProps) {
           <YAxis 
             stroke="hsl(var(--muted-foreground))"
             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-            tickFormatter={(value) => `${value.toFixed(0)}%`}
+            tickFormatter={(value) => `${value.toFixed(1)}%`}
             axisLine={false}
             tickLine={false}
             domain={[0, 'auto']}

@@ -44,6 +44,7 @@ export interface TimeSeriesData {
   conversoes: number;
   receita: number;
   roas: number;
+  ctr: number; // CTR calculado após agregação: (cliques / impressoes) * 100
 }
 
 export interface FunnelData {
