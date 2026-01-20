@@ -22,6 +22,39 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('macro');
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Handlers que mostram aviso na aba Macro
+  const showMacroFilterWarning = useCallback(() => {
+    toast({
+      title: 'Filtro não disponível',
+      description: 'Este filtro só pode ser aplicado na aba Análise Detalhada',
+      variant: 'destructive',
+    });
+  }, [toast]);
+
+  const handleCampanhasChange = useCallback((campanhas: string[]) => {
+    if (activeTab === 'macro' && campanhas.length > 0) {
+      showMacroFilterWarning();
+      return;
+    }
+    setCampanhas(campanhas);
+  }, [activeTab, setCampanhas, showMacroFilterWarning]);
+
+  const handleGruposChange = useCallback((grupos: string[]) => {
+    if (activeTab === 'macro' && grupos.length > 0) {
+      showMacroFilterWarning();
+      return;
+    }
+    setGrupos(grupos);
+  }, [activeTab, setGrupos, showMacroFilterWarning]);
+
+  const handleCanaisChange = useCallback((canais: string[]) => {
+    if (activeTab === 'macro' && canais.length > 0) {
+      showMacroFilterWarning();
+      return;
+    }
+    setCanais(canais);
+  }, [activeTab, setCanais, showMacroFilterWarning]);
   
   // Handler to refresh all data
   const handleRefreshData = useCallback(() => {
@@ -187,9 +220,9 @@ export default function Dashboard() {
         filterOptions={filterOptions || { campanhas: [], grupos: [], canais: [] }}
         onDateRangeChange={setDateRange}
         onGranularityChange={setGranularity}
-        onCampanhasChange={setCampanhas}
-        onGruposChange={setGrupos}
-        onCanaisChange={setCanais}
+        onCampanhasChange={handleCampanhasChange}
+        onGruposChange={handleGruposChange}
+        onCanaisChange={handleCanaisChange}
         onReset={resetFilters}
         onRefreshData={handleRefreshData}
       />
