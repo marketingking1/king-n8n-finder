@@ -1,10 +1,9 @@
-import { LogOut, RefreshCw, RotateCcw } from 'lucide-react';
+import { Rocket, LogOut, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from './FilterBar';
 import { FilterState, Granularity, DateRange } from '@/types/dashboard';
 import { useToast } from '@/hooks/use-toast';
-import kingLogo from '@/assets/king-logo.png';
 
 interface DashboardHeaderProps {
   filters: FilterState;
@@ -45,46 +44,31 @@ export function DashboardHeader({
   };
 
   return (
-    <header className="header-sticky">
+    <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <div className="p-1 rounded-xl bg-white/10 backdrop-blur">
-              <img src={kingLogo} alt="King Logo" className="h-10 w-10 object-contain" />
+            <div className="p-2 rounded-xl bg-primary/10 border border-primary/30">
+              <Rocket className="h-8 w-8 text-primary" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                Acompanhamento de performance - <span className="text-gradient-gold">Perpétuo</span>
+                Acompanhamento de performance - <span className="text-gradient">Perpétuo</span>
               </h1>
               <p className="text-sm text-muted-foreground">Performance Marketing Dashboard</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRefreshData} 
-              className="border-accent/30 hover:border-accent/50 hover:bg-accent/10 text-accent"
-            >
+            <Button variant="outline" size="sm" onClick={onRefreshData} className="border-border/50 hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-500">
               <RotateCcw className="h-4 w-4 mr-2" />
               Atualizar
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onReset} 
-              className="border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-primary-light"
-            >
+            <Button variant="outline" size="sm" onClick={onReset} className="border-border/50 hover:border-primary/50 hover:bg-primary/10">
               <RefreshCw className="h-4 w-4 mr-2" />
               Resetar
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut} 
-              className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive-light"
-            >
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive">
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </Button>

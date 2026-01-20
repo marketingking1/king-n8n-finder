@@ -100,35 +100,30 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
 
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <TableHead 
-      className="cursor-pointer hover:bg-card-hover transition-colors text-muted-foreground uppercase text-xs font-medium"
+      className="cursor-pointer hover:bg-muted/50 transition-colors"
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <ArrowUpDown className="h-3 w-3 text-primary" />
+        <ArrowUpDown className="h-3 w-3" />
       </div>
     </TableHead>
   );
 
   return (
-    <Card className="glow-card overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-primary/10 bg-background">
-        <CardTitle className="text-lg text-foreground">Performance por Campanha</CardTitle>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={exportCSV}
-          className="border-primary/30 hover:border-primary/50 hover:bg-primary/10 text-primary-light"
-        >
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Performance por Campanha</CardTitle>
+        <Button variant="outline" size="sm" onClick={exportCSV}>
           <Download className="h-4 w-4 mr-2" />
           Exportar CSV
         </Button>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-background border-b border-primary/10 hover:bg-background">
+              <TableRow>
                 <TableHead className="w-8"></TableHead>
                 <SortHeader field="campanha">Campanha</SortHeader>
                 <SortHeader field="investimento">Investimento</SortHeader>
@@ -144,52 +139,43 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedData.map((row, index) => {
+              {sortedData.map((row) => {
                 const roasColor = getROASColor(row.roas);
                 const cpaColor = getCPAColor(row.cpa);
                 const isExpanded = expandedCampaign === row.campanha;
                 const groupData = isExpanded ? getGroupData(row.campanha) : [];
-                const isEven = index % 2 === 0;
 
                 return (
                   <Collapsible key={row.campanha} open={isExpanded} asChild>
                     <>
                       <CollapsibleTrigger asChild>
                         <TableRow 
-                          className={cn(
-                            "cursor-pointer transition-all duration-150",
-                            isEven ? "bg-card" : "bg-[hsl(212_27%_9%)]",
-                            "hover:bg-card-hover hover:border-l-2 hover:border-l-primary"
-                          )}
+                          className="cursor-pointer hover:bg-muted/50"
                           onClick={() => setExpandedCampaign(isExpanded ? null : row.campanha)}
                         >
                           <TableCell>
-                            {isExpanded 
-                              ? <ChevronDown className="h-4 w-4 text-primary" /> 
-                              : <ChevronRight className="h-4 w-4 text-primary" />
-                            }
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           </TableCell>
                           <TableCell className="font-medium max-w-[200px] truncate">{row.campanha}</TableCell>
-                          <TableCell className="tabular-nums">{formatCurrency(row.investimento)}</TableCell>
-                          <TableCell className="tabular-nums">{formatNumber(row.impressoes)}</TableCell>
-                          <TableCell className="tabular-nums">{formatNumber(row.cliques)}</TableCell>
-                          <TableCell className="tabular-nums">{formatPercent(row.ctr)}</TableCell>
-                          <TableCell className="tabular-nums">{formatNumber(row.leads)}</TableCell>
-                          <TableCell className="tabular-nums">{formatCurrency(row.cpl)}</TableCell>
-                          <TableCell className="tabular-nums">{formatNumber(row.conversoes)}</TableCell>
+                          <TableCell>{formatCurrency(row.investimento)}</TableCell>
+                          <TableCell>{formatNumber(row.impressoes)}</TableCell>
+                          <TableCell>{formatNumber(row.cliques)}</TableCell>
+                          <TableCell>{formatPercent(row.ctr)}</TableCell>
+                          <TableCell>{formatNumber(row.leads)}</TableCell>
+                          <TableCell>{formatCurrency(row.cpl)}</TableCell>
+                          <TableCell>{formatNumber(row.conversoes)}</TableCell>
                           <TableCell className={cn(
-                            "tabular-nums font-medium",
-                            cpaColor === 'destructive' && 'text-destructive-light',
-                            cpaColor === 'warning' && 'text-warning',
-                            cpaColor === 'success' && 'text-accent'
+                            cpaColor === 'destructive' && 'text-destructive font-medium',
+                            cpaColor === 'warning' && 'text-warning font-medium',
+                            cpaColor === 'success' && 'text-success font-medium'
                           )}>
                             {formatCurrency(row.cpa)}
                           </TableCell>
-                          <TableCell className="tabular-nums text-accent">{formatCurrency(row.receita)}</TableCell>
+                          <TableCell>{formatCurrency(row.receita)}</TableCell>
                           <TableCell className={cn(
-                            'font-medium tabular-nums',
-                            roasColor === 'success' && 'text-accent',
-                            roasColor === 'destructive' && 'text-destructive-light'
+                            'font-medium',
+                            roasColor === 'success' && 'text-success',
+                            roasColor === 'destructive' && 'text-destructive'
                           )}>
                             {formatROAS(row.roas)}
                           </TableCell>
@@ -198,29 +184,26 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
                       <CollapsibleContent asChild>
                         <>
                           {groupData.map((group) => (
-                            <TableRow key={group.grupo_anuncio} className="bg-secondary/50">
+                            <TableRow key={group.grupo_anuncio} className="bg-muted/30">
                               <TableCell></TableCell>
                               <TableCell className="pl-8 text-muted-foreground">{group.grupo_anuncio}</TableCell>
-                              <TableCell className="tabular-nums">{formatCurrency(group.investimento)}</TableCell>
-                              <TableCell className="tabular-nums">{formatNumber(group.impressoes)}</TableCell>
-                              <TableCell className="tabular-nums">{formatNumber(group.cliques)}</TableCell>
-                              <TableCell className="tabular-nums">{formatPercent(group.ctr)}</TableCell>
-                              <TableCell className="tabular-nums">{formatNumber(group.leads)}</TableCell>
-                              <TableCell className="tabular-nums">{formatCurrency(group.cpl)}</TableCell>
-                              <TableCell className="tabular-nums">{formatNumber(group.conversoes)}</TableCell>
+                              <TableCell>{formatCurrency(group.investimento)}</TableCell>
+                              <TableCell>{formatNumber(group.impressoes)}</TableCell>
+                              <TableCell>{formatNumber(group.cliques)}</TableCell>
+                              <TableCell>{formatPercent(group.ctr)}</TableCell>
+                              <TableCell>{formatNumber(group.leads)}</TableCell>
+                              <TableCell>{formatCurrency(group.cpl)}</TableCell>
+                              <TableCell>{formatNumber(group.conversoes)}</TableCell>
                               <TableCell className={cn(
-                                "tabular-nums",
-                                getCPAColor(group.cpa) === 'destructive' && 'text-destructive-light',
-                                getCPAColor(group.cpa) === 'warning' && 'text-warning',
-                                getCPAColor(group.cpa) === 'success' && 'text-accent'
+                                getCPAColor(group.cpa) === 'destructive' && 'text-destructive',
+                                getCPAColor(group.cpa) === 'warning' && 'text-warning'
                               )}>
                                 {formatCurrency(group.cpa)}
                               </TableCell>
-                              <TableCell className="tabular-nums">{formatCurrency(group.receita)}</TableCell>
+                              <TableCell>{formatCurrency(group.receita)}</TableCell>
                               <TableCell className={cn(
-                                "tabular-nums",
-                                getROASColor(group.roas) === 'success' && 'text-accent',
-                                getROASColor(group.roas) === 'destructive' && 'text-destructive-light'
+                                getROASColor(group.roas) === 'success' && 'text-success',
+                                getROASColor(group.roas) === 'destructive' && 'text-destructive'
                               )}>
                                 {formatROAS(group.roas)}
                               </TableCell>
@@ -233,19 +216,19 @@ export function CampaignTable({ data, allData }: CampaignTableProps) {
                 );
               })}
               {/* Totals Row */}
-              <TableRow className="bg-muted font-bold border-t-2 border-primary/20">
+              <TableRow className="bg-muted font-bold border-t-2">
                 <TableCell></TableCell>
-                <TableCell className="text-foreground">TOTAL</TableCell>
-                <TableCell className="tabular-nums">{formatCurrency(totals.investimento)}</TableCell>
-                <TableCell className="tabular-nums">{formatNumber(totals.impressoes)}</TableCell>
-                <TableCell className="tabular-nums">{formatNumber(totals.cliques)}</TableCell>
-                <TableCell className="tabular-nums">{formatPercent(totalMetrics.ctr)}</TableCell>
-                <TableCell className="tabular-nums">{formatNumber(totals.leads)}</TableCell>
-                <TableCell className="tabular-nums">{formatCurrency(totalMetrics.cpl)}</TableCell>
-                <TableCell className="tabular-nums">{formatNumber(totals.conversoes)}</TableCell>
-                <TableCell className="tabular-nums">{formatCurrency(totalMetrics.cpa)}</TableCell>
-                <TableCell className="tabular-nums text-accent">{formatCurrency(totals.receita)}</TableCell>
-                <TableCell className="tabular-nums">{formatROAS(totalMetrics.roas)}</TableCell>
+                <TableCell>TOTAL</TableCell>
+                <TableCell>{formatCurrency(totals.investimento)}</TableCell>
+                <TableCell>{formatNumber(totals.impressoes)}</TableCell>
+                <TableCell>{formatNumber(totals.cliques)}</TableCell>
+                <TableCell>{formatPercent(totalMetrics.ctr)}</TableCell>
+                <TableCell>{formatNumber(totals.leads)}</TableCell>
+                <TableCell>{formatCurrency(totalMetrics.cpl)}</TableCell>
+                <TableCell>{formatNumber(totals.conversoes)}</TableCell>
+                <TableCell>{formatCurrency(totalMetrics.cpa)}</TableCell>
+                <TableCell>{formatCurrency(totals.receita)}</TableCell>
+                <TableCell>{formatROAS(totalMetrics.roas)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>

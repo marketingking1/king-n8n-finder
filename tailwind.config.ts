@@ -13,9 +13,6 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -25,8 +22,6 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          light: "hsl(var(--primary-light))",
-          dark: "hsl(var(--primary-dark))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -35,12 +30,10 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
-          light: "hsl(var(--destructive-light))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
-          alt: "hsl(var(--success-alt))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
@@ -53,7 +46,6 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
-          light: "hsl(var(--accent-light))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -62,22 +54,18 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
-          hover: "hsl(var(--card-hover))",
         },
         chart: {
+          magenta: "hsl(var(--chart-magenta))",
+          pink: "hsl(var(--chart-pink))",
+          purple: "hsl(var(--chart-purple))",
           blue: "hsl(var(--chart-blue))",
-          "blue-light": "hsl(var(--chart-blue-light))",
-          gold: "hsl(var(--chart-gold))",
-          "gold-light": "hsl(var(--chart-gold-light))",
-          red: "hsl(var(--chart-red))",
           green: "hsl(var(--chart-green))",
           orange: "hsl(var(--chart-orange))",
-          slate: "hsl(var(--chart-slate))",
         },
         glow: {
           primary: "hsl(var(--glow-primary))",
-          gold: "hsl(var(--glow-gold))",
-          red: "hsl(var(--glow-red))",
+          secondary: "hsl(var(--glow-secondary))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -94,16 +82,23 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        xl: "1rem",
       },
       keyframes: {
         "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
         },
         "glow-pulse": {
           "0%, 100%": {
@@ -113,21 +108,11 @@ export default {
             boxShadow: "0 0 30px -5px hsl(var(--glow-primary) / 0.5)",
           },
         },
-        "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "count-up": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "glow-pulse": "glow-pulse 3s ease-in-out infinite",
-        "fade-in": "fade-in 0.3s ease-out",
-        "count-up": "count-up 0.5s ease-out",
       },
     },
   },
