@@ -1,19 +1,19 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { CampaignMetrics } from '@/types/dashboard';
 import { formatROAS } from '@/lib/formatters';
 import { ChartCard } from './ChartCard';
 import { useMemo } from 'react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface ROASByCampaignChartProps {
   data: CampaignMetrics[];
 }
 
 const COLORS = [
-  'hsl(var(--chart-magenta))',
-  'hsl(var(--chart-pink))',
-  'hsl(var(--chart-purple))',
-  'hsl(var(--chart-blue))',
-  'hsl(var(--chart-green))',
+  'hsl(186, 100%, 50%)',   // Primary cyan
+  'hsl(210, 100%, 55%)',   // Blue
+  'hsl(160, 100%, 45%)',   // Green
+  'hsl(230, 80%, 55%)',    // Royal
+  'hsl(175, 80%, 45%)',    // Teal
 ];
 
 export function ROASByCampaignChart({ data }: ROASByCampaignChartProps) {
@@ -24,22 +24,30 @@ export function ROASByCampaignChart({ data }: ROASByCampaignChartProps) {
       .slice(0, 5);
   }, [data]);
 
-  // Create chart data showing campaigns as bars
+  // Calculate max ROAS for scaling bars
+  const maxRoas = useMemo(() => {
+    return Math.max(...topCampaigns.map(c => c.roas), 1);
+  }, [topCampaigns]);
+
+  // Create chart data
   const chartData = useMemo(() => {
     return topCampaigns.map((campaign, index) => ({
-      name: campaign.campanha.length > 20 
-        ? campaign.campanha.substring(0, 17) + '...' 
+      name: campaign.campanha.length > 25 
+        ? campaign.campanha.substring(0, 22) + '...' 
         : campaign.campanha,
       fullName: campaign.campanha,
       roas: campaign.roas,
+      investimento: campaign.investimento,
+      receita: campaign.receita,
       color: COLORS[index % COLORS.length],
+      percentage: (campaign.roas / maxRoas) * 100,
     }));
-  }, [topCampaigns]);
+  }, [topCampaigns, maxRoas]);
 
   if (chartData.length === 0) {
     return (
-      <ChartCard title="ROAS por campanha">
-        <div className="flex items-center justify-center h-full text-muted-foreground">
+      <ChartCard title="ROAS por Campanha" subtitle="Top 5 campanhas">
+        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
           Nenhuma campanha disponível
         </div>
       </ChartCard>
@@ -47,28 +55,43 @@ export function ROASByCampaignChart({ data }: ROASByCampaignChartProps) {
   }
 
   return (
-    <ChartCard title="ROAS por campanha">
-      <div className="space-y-3 h-full flex flex-col justify-center">
+    <ChartCard title="ROAS por Campanha" subtitle="Top 5 campanhas por retorno">
+      <div className="space-y-3 h-full flex flex-col justify-center px-1">
         {chartData.map((campaign, index) => (
-          <div key={index} className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
+          <div key={index} className="group">
+            <div className="flex items-center justify-between text-sm mb-1.5">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div 
-                  className="w-3 h-3 rounded-full" 
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: campaign.color }}
                 />
-                <span className="text-muted-foreground truncate max-w-[150px]" title={campaign.fullName}>
+                <span 
+                  className="text-muted-foreground truncate text-xs group-hover:text-foreground transition-colors" 
+                  title={campaign.fullName}
+                >
                   {campaign.name}
                 </span>
               </div>
-              <span className="font-medium text-foreground">{formatROAS(campaign.roas)}</span>
+              <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                {campaign.roas >= 1 ? (
+                  <TrendingUp className="h-3 w-3 text-success" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-destructive" />
+                )}
+                <span className={`font-semibold text-sm ${
+                  campaign.roas >= 1 ? 'text-success' : 'text-destructive'
+                }`}>
+                  {formatROAS(campaign.roas)}
+                </span>
+              </div>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-2 bg-[hsl(217,20%,18%)] rounded-full overflow-hidden">
               <div 
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full rounded-full transition-all duration-500 ease-out group-hover:opacity-90"
                 style={{ 
-                  width: `${Math.min(100, (campaign.roas / 3) * 100)}%`,
+                  width: `${campaign.percentage}%`,
                   backgroundColor: campaign.color,
+                  boxShadow: `0 0 8px ${campaign.color}40`
                 }}
               />
             </div>
