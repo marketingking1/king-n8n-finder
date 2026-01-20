@@ -1,3 +1,5 @@
+import { endOfDay, isValid, parseISO, startOfDay } from 'date-fns';
+
 const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 
 // Planilha 1: tabela_objetivo (mídia paga - investimento/custos)
@@ -28,11 +30,29 @@ export interface GoogleSheetsData {
   taxaConversao: number;
 }
 
-function parseNumber(value: string | undefined | null): number {
-  if (!value) return 0;
-  // Handle comma as decimal separator
-  const cleaned = String(value).replace(/[^\d.,-]/g, '').replace(',', '.');
-  return parseFloat(cleaned) || 0;
+function parseNumber(value: string | number | undefined | null): number {
+  if (value == null || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+  // Supports both formats:
+  // - pt-BR: "1.234,56"
+  // - en-US: "1234.56"
+  let str = String(value).trim();
+  str = str.replace(/[^\d.,-]/g, '');
+
+  const hasComma = str.includes(',');
+  const hasDot = str.includes('.');
+
+  if (hasComma && hasDot) {
+    // Assume dot is thousands separator and comma is decimal separator
+    str = str.replace(/\./g, '').replace(/,/g, '.');
+  } else if (hasComma) {
+    // Assume comma is decimal separator
+    str = str.replace(/,/g, '.');
+  }
+
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n : 0;
 }
 
 // Macro data interface for Dados_macro_vendas (monthly summary)
@@ -46,7 +66,7 @@ export interface MacroSheetsData {
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   // Use A:J range (excludes ID columns K,L) to ensure all data rows are fetched
   const range = `${SHEET_NAME_OBJETIVO}!A:J`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
 
   try {
     const response = await fetch(url);
@@ -61,9 +81,11 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
     const values: string[][] = data.values || [];
     
     // Skip header row and filter out summary rows
+    // NOTE: Sheets API trims trailing empty cells; do not rely on row.length.
     const dataRows = values.slice(1).filter(row => {
       const canal = row[0] || '';
-      return canal && !canal.includes('()') && row.length >= 6;
+      const date = row[2] || '';
+      return Boolean(canal) && !canal.includes('()') && Boolean(date);
     });
 
     const rows: SheetsMarketingRow[] = dataRows.map(row => ({
@@ -128,11 +150,16 @@ export function filterByDateRange(
   from: Date | undefined,
   to: Date | undefined
 ): SheetsMarketingRow[] {
+  const fromDay = from ? startOfDay(from) : undefined;
+  const toDay = to ? endOfDay(to) : undefined;
+
   return rows.filter(row => {
     if (!row.data) return false;
-    const rowDate = new Date(row.data);
-    if (from && rowDate < from) return false;
-    if (to && rowDate > to) return false;
+    // IMPORTANT: do not use `new Date('YYYY-MM-DD')` (UTC parsing causes off-by-one-day in BR).
+    const rowDate = parseISO(row.data);
+    if (!isValid(rowDate)) return false;
+    if (fromDay && rowDate < fromDay) return false;
+    if (toDay && rowDate > toDay) return false;
     return true;
   });
 }
