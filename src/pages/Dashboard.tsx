@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 import { MacroKPICards } from '@/components/dashboard/MacroKPICards';
+import { ConversionFunnel } from '@/components/dashboard/ConversionFunnel';
+import { YoYComparison } from '@/components/dashboard/YoYComparison';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
@@ -174,6 +176,22 @@ export default function Dashboard() {
         sheetsData={filteredSheetsData}
         isLoading={macroLoading || dataLoading}
       />
+      
+      {/* Funnel and YoY Comparison Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ConversionFunnel 
+          metrics={macroMetrics} 
+          isLoading={macroLoading || dataLoading} 
+        />
+        <YoYComparison 
+          currentData={macroMetrics ? {
+            vendas: macroMetrics.conversoes,
+            leads: macroMetrics.leads,
+            investimento: macroMetrics.investimento,
+          } : undefined}
+          isLoading={macroLoading || dataLoading}
+        />
+      </div>
     </div>
   );
 
