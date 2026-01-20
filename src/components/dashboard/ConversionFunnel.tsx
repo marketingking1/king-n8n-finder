@@ -136,19 +136,10 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
     );
   }
 
-  // Calculate overall efficiency (Vendas / Impressões)
-  const overallEfficiency = funnelData[0].value > 0 
-    ? (funnelData[3].value / funnelData[0].value) * 100 
-    : 0;
-
   return (
     <div className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h3 className="text-base font-display font-semibold text-foreground">Funil de Conversão</h3>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
-          <span className="text-xs text-muted-foreground">Eficiência:</span>
-          <span className="text-sm font-bold text-primary">{formatPercent(overallEfficiency)}</span>
-        </div>
       </div>
       
       <div className="flex flex-col items-center">
