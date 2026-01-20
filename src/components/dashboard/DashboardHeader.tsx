@@ -1,9 +1,10 @@
-import { Rocket, LogOut, RefreshCw, RotateCcw } from 'lucide-react';
+import { LogOut, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from './FilterBar';
 import { FilterState, Granularity, DateRange } from '@/types/dashboard';
 import { useToast } from '@/hooks/use-toast';
+import kingLogo from '@/assets/king-logo.png';
 
 interface DashboardHeaderProps {
   filters: FilterState;
@@ -48,8 +49,8 @@ export function DashboardHeader({
       <div className="px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <div className="p-2 rounded-xl gradient-primary">
-              <Rocket className="h-8 w-8 text-white" />
+            <div className="p-1 rounded-xl bg-white/10 backdrop-blur">
+              <img src={kingLogo} alt="King Logo" className="h-10 w-10 object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
