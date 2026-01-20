@@ -101,6 +101,8 @@ export function groupByTime(data: MarketingData[], granularity: Granularity): Ti
         conversoes: metrics.conversoes,
         receita: receitaCalculada,
         roas: metrics.investimento > 0 ? receitaCalculada / metrics.investimento : 0,
+        // CTR calculado APÓS agregação: SUM(cliques) / SUM(impressões) × 100
+        ctr: metrics.impressoes > 0 ? (metrics.cliques / metrics.impressoes) * 100 : 0,
       };
     })
     .sort((a, b) => a.data.localeCompare(b.data));
