@@ -1,9 +1,7 @@
-import { Crown, LogOut, RefreshCw, RotateCcw } from 'lucide-react';
+import { RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import { FilterBar } from './FilterBar';
 import { FilterState, Granularity, DateRange } from '@/types/dashboard';
-import { useToast } from '@/hooks/use-toast';
 
 interface DashboardHeaderProps {
   filters: FilterState;
@@ -32,35 +30,26 @@ export function DashboardHeader({
   onReset,
   onRefreshData,
 }: DashboardHeaderProps) {
-  const { signOut } = useAuth();
-  const { toast } = useToast();
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: 'Até logo!',
-      description: 'Você saiu da sua conta.',
-    });
-  };
-
   return (
-    <header className="border-b border-border bg-[hsl(215,35%,11%)] sticky top-0 z-50">
+    <header className="border-b border-border bg-[hsl(215,35%,11%)] sticky top-0 z-30">
       <div className="px-6 py-4">
-        {/* Top Row: Branding + Actions */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <Crown className="h-7 w-7 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg font-display font-semibold text-foreground">
-                King of Languages
-              </h1>
-              <p className="text-xs text-muted-foreground">Dashboard de Marketing</p>
-            </div>
+        {/* Top Row: Filters + Actions */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Filter Bar */}
+          <div className="flex-1">
+            <FilterBar
+              filters={filters}
+              filterOptions={filterOptions}
+              onDateRangeChange={onDateRangeChange}
+              onGranularityChange={onGranularityChange}
+              onCampanhasChange={onCampanhasChange}
+              onGruposChange={onGruposChange}
+              onCanaisChange={onCanaisChange}
+            />
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button 
               variant="outline" 
               size="sm" 
@@ -68,7 +57,7 @@ export function DashboardHeader({
               className="h-9 gap-2 text-success hover:bg-success/10 hover:border-success/50 hover:text-success"
             >
               <RotateCcw className="h-4 w-4" />
-              Atualizar
+              <span className="hidden sm:inline">Atualizar</span>
             </Button>
             <Button 
               variant="outline" 
@@ -77,30 +66,10 @@ export function DashboardHeader({
               className="h-9 gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Resetar
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="h-9 gap-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair
+              <span className="hidden sm:inline">Resetar</span>
             </Button>
           </div>
         </div>
-
-        {/* Filter Bar */}
-        <FilterBar
-          filters={filters}
-          filterOptions={filterOptions}
-          onDateRangeChange={onDateRangeChange}
-          onGranularityChange={onGranularityChange}
-          onCampanhasChange={onCampanhasChange}
-          onGruposChange={onGruposChange}
-          onCanaisChange={onCanaisChange}
-        />
       </div>
     </header>
   );

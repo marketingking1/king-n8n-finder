@@ -7,7 +7,7 @@ import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calcul
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
+import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { MacroKPICards } from '@/components/dashboard/MacroKPICards';
 import { ConversionFunnel } from '@/components/dashboard/ConversionFunnel';
 import { YoYComparison } from '@/components/dashboard/YoYComparison';
@@ -17,6 +17,7 @@ import { CampaignTable } from '@/components/dashboard/CampaignTable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const { user, session, loading: authLoading } = useAuth();
@@ -231,39 +232,63 @@ export default function Dashboard() {
     </>
   );
 
+
   return (
-    <div className="min-h-screen bg-background relative">
-      {/* Popup flutuante de aviso */}
-      {showFilterWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="bg-card text-card-foreground px-6 py-4 rounded-xl shadow-2xl border border-border animate-in fade-in zoom-in duration-300 pointer-events-auto">
-            <p className="text-sm font-medium text-center">
-              Este filtro só pode ser aplicado na aba <span className="font-bold text-primary">Análise Detalhada</span>
+    <div className="min-h-screen bg-background">
+      {/* Sidebar */}
+      <DashboardSidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+      />
+
+      {/* Main Content Area - ajusta margem baseado na sidebar */}
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        "ml-56" // Sidebar width when expanded
+      )}>
+        {/* Popup flutuante de aviso */}
+        {showFilterWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="bg-card text-card-foreground px-6 py-4 rounded-xl shadow-2xl border border-border animate-in fade-in zoom-in duration-300 pointer-events-auto">
+              <p className="text-sm font-medium text-center">
+                Este filtro só pode ser aplicado na aba <span className="font-bold text-primary">Análise Detalhada</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        <DashboardHeader
+          filters={filters}
+          filterOptions={filterOptions || { campanhas: [], grupos: [], canais: [] }}
+          onDateRangeChange={setDateRange}
+          onGranularityChange={setGranularity}
+          onCampanhasChange={handleCampanhasChange}
+          onGruposChange={handleGruposChange}
+          onCanaisChange={handleCanaisChange}
+          onReset={resetFilters}
+          onRefreshData={handleRefreshData}
+        />
+        
+        <main className="p-6">
+          {/* Tab Title */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-display font-bold text-foreground">
+              {activeTab === 'macro' ? 'Visão Macro' : 'Análise Detalhada'}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {activeTab === 'macro' 
+                ? 'Consolidação geral do negócio e métricas de alto nível'
+                : 'Performance detalhada de campanhas e métricas de mídia'
+              }
             </p>
           </div>
-        </div>
-      )}
 
-      <DashboardHeader
-        filters={filters}
-        filterOptions={filterOptions || { campanhas: [], grupos: [], canais: [] }}
-        onDateRangeChange={setDateRange}
-        onGranularityChange={setGranularity}
-        onCampanhasChange={handleCampanhasChange}
-        onGruposChange={handleGruposChange}
-        onCanaisChange={handleCanaisChange}
-        onReset={resetFilters}
-        onRefreshData={handleRefreshData}
-      />
-      
-      <main className="p-6">
-        <DashboardTabs
-          macroContent={macroContent}
-          detailedContent={detailedContent}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-      </main>
+          {/* Content based on active tab */}
+          <div className="animate-fade-in">
+            {activeTab === 'macro' ? macroContent : detailedContent}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
