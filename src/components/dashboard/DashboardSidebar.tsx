@@ -3,9 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BarChart3, 
-  TrendingUp,
-  Target,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -13,7 +10,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
@@ -50,21 +46,6 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       label: 'Análise Detalhada', 
       icon: BarChart3,
       onClick: () => onTabChange('detailed')
-    },
-  ];
-
-  const secondaryNavItems: NavItem[] = [
-    { 
-      id: 'performance', 
-      label: 'Performance', 
-      icon: TrendingUp,
-      onClick: () => onTabChange('macro')
-    },
-    { 
-      id: 'metas', 
-      label: 'Metas', 
-      icon: Target,
-      onClick: () => onTabChange('macro')
     },
   ];
 
@@ -117,33 +98,10 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
               ))}
             </div>
           </div>
-
-          <div className="pt-4 border-t border-border">
-            {!isCollapsed && (
-              <span className="px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Relatórios
-              </span>
-            )}
-            <div className="mt-2 space-y-1">
-              {secondaryNavItems.map((item) => (
-                <NavButton
-                  key={item.id}
-                  item={item}
-                  isActive={false}
-                  isCollapsed={isCollapsed}
-                />
-              ))}
-            </div>
-          </div>
         </nav>
 
         {/* Bottom Section */}
         <div className="px-3 py-4 border-t border-border space-y-1">
-          <NavButton
-            item={{ id: 'settings', label: 'Configurações', icon: Settings }}
-            isActive={false}
-            isCollapsed={isCollapsed}
-          />
           <NavButton
             item={{ 
               id: 'logout', 
