@@ -38,7 +38,7 @@ async function fetchHistoricalData(): Promise<YoYData | null> {
   const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
   const SPREADSHEET_ID = '1qS646MJtNvxmMDRMTrFQqX6CKtPJRItbhd0t6stb1HM';
   const SHEET_NAME = 'lovable_historico';
-  const range = `${SHEET_NAME}!A:Z`;
+  const range = `${SHEET_NAME}!A:O`;
   
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
   
@@ -59,73 +59,44 @@ async function fetchHistoricalData(): Promise<YoYData | null> {
       return null;
     }
     
-    // Get current month to find matching column
+    // Get current month (0-indexed) to map to column
+    // Header row: col 0="dados 2025", cols 1-2 empty, cols 3-14 = Jan-Dez
+    // Column mapping: Jan=3, Fev=4, Mar=5, Abr=6, Mai=7, Jun=8, Jul=9, Ago=10, Set=11, Out=12, Nov=13, Dez=14
     const now = new Date();
-    const currentMonth = now.getMonth(); // 0-indexed (0 = January)
+    const currentMonth = now.getMonth(); // 0=Jan, 1=Feb, etc
+    const targetColIndex = currentMonth + 3; // Offset by 3 for empty columns
     
-    // Month abbreviations to match sheet format
-    const monthAbbreviations = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    const targetMonthAbbr = monthAbbreviations[currentMonth];
-    
-    // Header row contains month columns (e.g., "mar. 25", "Abri 25", etc.)
-    const headerRow = values[0];
-    
-    // Find column index that matches current month from 2025
-    let targetColIndex = -1;
-    for (let i = 0; i < headerRow.length; i++) {
-      const colHeader = (headerRow[i] || '').toLowerCase().trim();
-      // Check if column header contains the month abbreviation and "25" (for 2025)
-      if (colHeader.includes(targetMonthAbbr) && colHeader.includes('25')) {
-        targetColIndex = i;
-        break;
-      }
-    }
-    
-    // If exact month not found, try to find closest available month
-    if (targetColIndex === -1) {
-      // Find any 2025 column as fallback
-      for (let i = headerRow.length - 1; i >= 0; i--) {
-        const colHeader = (headerRow[i] || '').toLowerCase().trim();
-        if (colHeader.includes('25')) {
-          targetColIndex = i;
-          break;
-        }
-      }
-    }
-    
-    if (targetColIndex === -1) {
-      console.warn('No matching historical month found');
-      return null;
-    }
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abri', 'Maio', 'Jul', 'Julho', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const monthName = monthNames[currentMonth] || 'N/A';
     
     const parseNumber = (value: string | undefined | null): number => {
       if (!value) return 0;
+      // Remove R$, %, dots (thousand separators), and convert comma to dot
       const cleaned = String(value).replace(/[R$%\s]/g, '').replace(/\./g, '').replace(',', '.');
       return parseFloat(cleaned) || 0;
     };
     
-    // Build a map of metric name -> value
+    // Build a map of metric name -> value from each row
+    // Row structure: [metric_name, "", "", Jan, Fev, Mar, ...]
     const metricsMap: Record<string, number> = {};
-    for (let i = 1; i < values.length; i++) {
+    for (let i = 0; i < values.length; i++) {
       const row = values[i];
       const metricName = (row[0] || '').toLowerCase().trim();
       const metricValue = parseNumber(row[targetColIndex]);
       metricsMap[metricName] = metricValue;
     }
     
-    // Extract relevant metrics
+    console.log('Historical data metricsMap:', metricsMap, 'for month column:', targetColIndex);
+    
+    // Extract relevant metrics using exact keys from sheet
     const vendas = metricsMap['vendas'] || 0;
     const leads = metricsMap['lead'] || 0;
     const investimento = metricsMap['investimento mensal'] || 0;
     const cpa = metricsMap['cpa'] || 0;
     const faturamento = metricsMap['faturamento'] || 0;
-    const mql = metricsMap['mql'] || 0;
     
     // Calculate conversion rate (vendas / leads)
     const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
-    
-    // Get the month name from header for display
-    const monthName = headerRow[targetColIndex] || 'N/A';
     
     return {
       vendas,
