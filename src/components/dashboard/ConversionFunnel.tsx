@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { MacroMetrics } from '@/hooks/useMacroData';
 import { formatNumber, formatPercent } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { Eye, MousePointer, Users, ShoppingCart, ArrowDown } from 'lucide-react';
+import { Eye, MousePointer, Users, ShoppingCart, ChevronDown } from 'lucide-react';
 
 interface ConversionFunnelProps {
   metrics: MacroMetrics | undefined;
@@ -14,31 +14,37 @@ interface FunnelStageProps {
   value: number;
   conversionRate?: number;
   icon: React.ReactNode;
-  width: number;
+  widthPercent: number;
+  bgColor: string;
   isLast?: boolean;
 }
 
-function FunnelStage({ name, value, conversionRate, icon, width, isLast }: FunnelStageProps) {
+function FunnelStage({ name, value, conversionRate, icon, widthPercent, bgColor, isLast }: FunnelStageProps) {
   return (
-    <div className="flex flex-col items-center">
+    <div className="w-full flex flex-col items-center">
+      {/* Stage bar */}
       <div 
-        className="relative glow-card-strong py-4 px-6 flex items-center justify-between gap-4 transition-all duration-300"
-        style={{ width: `${width}%` }}
+        className={cn(
+          "relative py-4 px-5 flex items-center justify-between rounded-xl border border-border/50 transition-all duration-300 hover:scale-[1.02]",
+          bgColor
+        )}
+        style={{ width: `${widthPercent}%`, minWidth: '200px' }}
       >
         <div className="flex items-center gap-3">
-          <div className="text-primary p-2 rounded-lg bg-primary/10">
+          <div className="text-primary p-2 rounded-lg bg-primary/20">
             {icon}
           </div>
-          <span className="text-sm font-medium text-muted-foreground">{name}</span>
+          <span className="text-sm font-medium text-foreground">{name}</span>
         </div>
-        <span className="text-xl font-bold text-foreground">{formatNumber(value)}</span>
+        <span className="text-lg font-bold text-foreground">{formatNumber(value)}</span>
       </div>
       
+      {/* Arrow and conversion rate */}
       {!isLast && (
-        <div className="flex flex-col items-center py-2">
-          <ArrowDown className="h-5 w-5 text-primary animate-pulse" />
+        <div className="flex flex-col items-center py-3">
+          <ChevronDown className="h-6 w-6 text-primary/60" />
           {conversionRate !== undefined && (
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-card/80 border border-border/30">
               <span className={cn(
                 "text-sm font-bold",
                 conversionRate >= 5 ? "text-success" : conversionRate >= 1 ? "text-warning" : "text-destructive"
@@ -69,10 +75,38 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
     const leadsToVendas = leads > 0 ? (vendas / leads) * 100 : 0;
     
     return [
-      { name: 'Impressões', value: impressoes, conversionRate: impressoesToCliques, icon: <Eye className="h-5 w-5" />, width: 100 },
-      { name: 'Cliques', value: cliques, conversionRate: cliquesToLeads, icon: <MousePointer className="h-5 w-5" />, width: 80 },
-      { name: 'Leads', value: leads, conversionRate: leadsToVendas, icon: <Users className="h-5 w-5" />, width: 60 },
-      { name: 'Vendas', value: vendas, icon: <ShoppingCart className="h-5 w-5" />, width: 40, isLast: true },
+      { 
+        name: 'Impressões', 
+        value: impressoes, 
+        conversionRate: impressoesToCliques, 
+        icon: <Eye className="h-5 w-5" />, 
+        widthPercent: 100,
+        bgColor: 'bg-gradient-to-r from-primary/20 to-primary/10'
+      },
+      { 
+        name: 'Cliques', 
+        value: cliques, 
+        conversionRate: cliquesToLeads, 
+        icon: <MousePointer className="h-5 w-5" />, 
+        widthPercent: 82,
+        bgColor: 'bg-gradient-to-r from-chart-blue/20 to-chart-blue/10'
+      },
+      { 
+        name: 'Leads', 
+        value: leads, 
+        conversionRate: leadsToVendas, 
+        icon: <Users className="h-5 w-5" />, 
+        widthPercent: 64,
+        bgColor: 'bg-gradient-to-r from-chart-royal/20 to-chart-royal/10'
+      },
+      { 
+        name: 'Vendas', 
+        value: vendas, 
+        icon: <ShoppingCart className="h-5 w-5" />, 
+        widthPercent: 46,
+        bgColor: 'bg-gradient-to-r from-success/20 to-success/10',
+        isLast: true
+      },
     ];
   }, [metrics]);
 
@@ -80,12 +114,12 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
     return (
       <div className="glow-card p-6">
         <h3 className="text-lg font-display font-semibold mb-6 text-foreground">Funil de Conversão</h3>
-        <div className="space-y-4">
-          {[100, 80, 60, 40].map((width, i) => (
+        <div className="flex flex-col items-center space-y-4">
+          {[100, 82, 64, 46].map((width, i) => (
             <div 
               key={i} 
-              className="h-16 bg-muted/20 rounded-lg animate-pulse mx-auto"
-              style={{ width: `${width}%` }}
+              className="h-14 bg-muted/20 rounded-xl animate-pulse"
+              style={{ width: `${width}%`, minWidth: '200px' }}
             />
           ))}
         </div>
@@ -117,15 +151,16 @@ export function ConversionFunnel({ metrics, isLoading }: ConversionFunnelProps) 
         </div>
       </div>
       
-      <div className="flex flex-col items-center space-y-1">
-        {funnelData.map((stage, index) => (
+      <div className="flex flex-col items-center">
+        {funnelData.map((stage) => (
           <FunnelStage
             key={stage.name}
             name={stage.name}
             value={stage.value}
             conversionRate={stage.conversionRate}
             icon={stage.icon}
-            width={stage.width}
+            widthPercent={stage.widthPercent}
+            bgColor={stage.bgColor}
             isLast={stage.isLast}
           />
         ))}
