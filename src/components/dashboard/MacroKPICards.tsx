@@ -106,21 +106,21 @@ function MainKPICard({ title, value, variation, colorType, rawValue, icon, inver
       variants={mainCardVariants}
       initial="hidden"
       animate="visible"
-      className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:border-primary/30 transition-all duration-200"
+      className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-4 xl:p-5 2xl:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:border-primary/30 transition-all duration-200 min-w-0 overflow-hidden"
     >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-shrink-0 p-2.5 rounded-lg bg-primary/10 text-primary">
+      <div className="flex items-center gap-2 xl:gap-3 mb-3 xl:mb-4">
+        <div className="flex-shrink-0 p-2 xl:p-2.5 rounded-lg bg-primary/10 text-primary">
           {icon}
         </div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+        <p className="text-[10px] xl:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{title}</p>
       </div>
-      <p className={cn("text-3xl font-display font-bold tracking-tight mb-2", getValueColor())}>
+      <p className={cn("text-xl lg:text-2xl xl:text-3xl font-display font-bold tracking-tight mb-2 truncate", getValueColor())}>
         {value}
       </p>
       {variation !== undefined && (
-        <p className={cn("text-xs font-medium flex items-center gap-1", getVariationColor())}>
-          <span>{getVariationIcon()}</span>
-          <span>{formatVariation(Math.abs(variation))} vs mês anterior</span>
+        <p className={cn("text-[10px] xl:text-xs font-medium flex items-center gap-1 truncate", getVariationColor())}>
+          <span className="flex-shrink-0">{getVariationIcon()}</span>
+          <span className="truncate">{formatVariation(Math.abs(variation))} vs mês anterior</span>
         </p>
       )}
     </motion.div>
@@ -144,19 +144,19 @@ function SecondaryKPICard({ title, value, variation, icon, index }: SecondaryKPI
       variants={secondaryCardVariants}
       initial="hidden"
       animate="visible"
-      className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-all duration-200"
+      className="rounded-lg border border-border bg-[hsl(215,35%,11%)] p-3 xl:p-4 shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-all duration-200 min-w-0 overflow-hidden"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 xl:gap-3">
         <div className="flex-shrink-0 text-primary/70">
           {icon}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-muted-foreground truncate mb-1">{title}</p>
-          <p className="text-xl font-display font-bold tracking-tight text-foreground">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="text-[10px] xl:text-xs text-muted-foreground truncate mb-1">{title}</p>
+          <p className="text-base lg:text-lg xl:text-xl font-display font-bold tracking-tight text-foreground truncate">
             {value}
           </p>
           {variation !== undefined && (
-            <p className={cn("text-xs font-medium mt-1", getVariationColor())}>
+            <p className={cn("text-[10px] xl:text-xs font-medium mt-1 truncate", getVariationColor())}>
               {getVariationIcon()} {formatVariation(Math.abs(variation))}
             </p>
           )}
@@ -244,23 +244,23 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   }
 
   return (
-    <div className="space-y-6">
-      {/* Main KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="space-y-4 xl:space-y-6">
+      {/* Main KPI Cards - responsive grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 xl:gap-4">
         <MainKPICard
-          title="Investimento Total"
+          title="Investimento"
           value={formatCurrency(investimento)}
           variation={variations?.investimento}
           colorType="neutral"
-          icon={<DollarSign className="h-5 w-5" />}
+          icon={<DollarSign className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={0}
         />
         <MainKPICard
-          title="Vendas (Conversões)"
+          title="Vendas"
           value={formatNumber(vendas)}
           variation={variations?.conversoes}
           colorType="growth"
-          icon={<ShoppingCart className="h-5 w-5" />}
+          icon={<ShoppingCart className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={1}
         />
         <MainKPICard
@@ -270,7 +270,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           colorType="cpa"
           rawValue={cpa}
           invertVariation={true}
-          icon={<Target className="h-5 w-5" />}
+          icon={<Target className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={2}
         />
         <MainKPICard
@@ -278,7 +278,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           value={formatCurrency(cacProjetado)}
           colorType="cpa"
           rawValue={cacProjetado}
-          icon={<Wallet className="h-5 w-5" />}
+          icon={<Wallet className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={3}
         />
         <MainKPICard
@@ -287,53 +287,53 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           variation={roasVariation}
           colorType="roas"
           rawValue={roas}
-          icon={<BarChart3 className="h-5 w-5" />}
+          icon={<BarChart3 className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={4}
         />
         <MainKPICard
-          title="Taxa Conversão Lead→Venda"
+          title="Conversão Lead→Venda"
           value={formatPercent(taxaConversao)}
           variation={taxaVariation}
           colorType="conversion"
-          icon={<TrendingUp className="h-5 w-5" />}
+          icon={<TrendingUp className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={5}
         />
       </div>
 
-      {/* Secondary KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Secondary KPI Cards - responsive grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 xl:gap-4">
         <SecondaryKPICard
-          title="Receita Total"
+          title="Receita"
           value={formatCurrency(receita)}
-          icon={<Wallet className="h-5 w-5" />}
+          icon={<Wallet className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={0}
         />
         <SecondaryKPICard
-          title="Leads Totais"
+          title="Leads"
           value={formatNumber(leads)}
           variation={variations?.leads}
-          icon={<Users className="h-5 w-5" />}
+          icon={<Users className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={1}
         />
         <SecondaryKPICard
           title="Impressões"
           value={formatNumber(currentMetrics?.impressoes || 0)}
           variation={variations?.impressoes}
-          icon={<Eye className="h-5 w-5" />}
+          icon={<Eye className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={2}
         />
         <SecondaryKPICard
           title="Cliques"
           value={formatNumber(currentMetrics?.cliques || 0)}
           variation={variations?.cliques}
-          icon={<MousePointer className="h-5 w-5" />}
+          icon={<MousePointer className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={3}
         />
         <SecondaryKPICard
           title="CTR"
           value={formatPercent(currentMetrics?.ctr || 0)}
           variation={variations?.ctr}
-          icon={<Percent className="h-5 w-5" />}
+          icon={<Percent className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={4}
         />
       </div>
