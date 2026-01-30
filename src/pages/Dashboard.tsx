@@ -14,7 +14,6 @@ import { YoYComparison } from '@/components/dashboard/YoYComparison';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
-import { CreativeAnalysisSection } from '@/components/dashboard/creative/CreativeAnalysisSection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
@@ -224,9 +223,6 @@ export default function Dashboard() {
             data={campaignMetrics} 
             allData={marketingData || []}
           />
-          
-          {/* Nova seção de Análise de Criativos */}
-          <CreativeAnalysisSection />
         </div>
       ) : (
         <div className="text-center py-20 text-muted-foreground">
