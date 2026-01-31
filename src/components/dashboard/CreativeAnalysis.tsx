@@ -16,7 +16,7 @@ interface CreativeAnalysisProps {
 
 export function CreativeAnalysis({ dateRange }: CreativeAnalysisProps) {
   const queryClient = useQueryClient();
-  const { rawData, aggregated, kpis, isLoading, error } = useFilteredCreativeData(dateRange);
+  const { rawData, aggregated, kpis, isLoading, error } = useFilteredCreativeData({ dateRange });
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
