@@ -279,7 +279,7 @@ export default function Dashboard() {
                 ? 'Visão Macro' 
                 : activeTab === 'detailed' 
                   ? 'Análise Micro' 
-                  : 'Análise'}
+                  : 'Análise Nano'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {activeTab === 'macro' 
