@@ -161,11 +161,14 @@ export const calculateCreativeKPIs = (rows: VideoCreativeRow[]): CreativeKPIs =>
   const totalSpend = rows.reduce((sum, r) => sum + r.spend, 0);
   const totalLeads = rows.reduce((sum, r) => sum + r.leads, 0);
   
-  // Calcular total de views 50% usando deriveMetrics
+  // Calcular total de views 50% para depois calcular a média percentual
   const totalViews50pct = rows.reduce((sum, r) => {
     const derived = deriveMetrics(r);
     return sum + derived.views50pct;
   }, 0);
+  
+  // Média percentual de quem chegou a 50% = (total views 50% / total impressões) × 100
+  const avgRetention50pct = safeDivide(totalViews50pct, totalImpressions) * 100;
 
   const weightedAvg = (getter: (r: VideoCreativeRow) => number | null): number => {
     const validRows = rows.filter(r => getter(r) !== null && r.impressions > 0);
@@ -182,7 +185,7 @@ export const calculateCreativeKPIs = (rows: VideoCreativeRow[]): CreativeKPIs =>
     avgCompletionRate: weightedAvg(r => r.completionRate),
     avgWatchTime: weightedAvg(r => r.videoAvgTimeWatched),
     totalLeads,
-    totalViews50pct,
+    avgRetention50pct,
     avgCpl: safeDivide(totalSpend, totalLeads),
     avgCpm: safeDivide(totalSpend, totalImpressions) * 1000,
     avgCtr: weightedAvg(r => r.ctr),

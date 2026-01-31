@@ -142,8 +142,8 @@ export function CreativeKPICards({ kpis, isLoading }: CreativeKPICardsProps) {
         index={4}
       />
       <KPICard
-        title="Views 50%"
-        value={formatNumber(kpis.totalViews50pct)}
+        title="Retenção 50%"
+        value={formatPercent(kpis.avgRetention50pct)}
         icon={<Play className="h-4 w-4" />}
         index={5}
       />
