@@ -14,6 +14,7 @@ import { YoYComparison } from '@/components/dashboard/YoYComparison';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
+import { CreativeAnalysis } from '@/components/dashboard/CreativeAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
@@ -63,6 +64,7 @@ export default function Dashboard() {
   const handleRefreshData = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['google-sheets-data'] });
     queryClient.invalidateQueries({ queryKey: ['macro-sheets-data'] });
+    queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
     toast({
       title: 'Atualizando dados...',
       description: 'Os dados estão sendo recarregados.',
@@ -273,19 +275,29 @@ export default function Dashboard() {
           {/* Tab Title */}
           <div className="mb-6">
             <h2 className="text-2xl font-display font-bold text-foreground">
-              {activeTab === 'macro' ? 'Visão Macro' : 'Análise Detalhada'}
+              {activeTab === 'macro' 
+                ? 'Visão Macro' 
+                : activeTab === 'detailed' 
+                  ? 'Análise Detalhada' 
+                  : 'Análise de Criativos'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {activeTab === 'macro' 
                 ? 'Consolidação geral do negócio e métricas de alto nível'
-                : 'Performance detalhada de campanhas e métricas de mídia'
+                : activeTab === 'detailed'
+                  ? 'Performance detalhada de campanhas e métricas de mídia'
+                  : 'Performance de criativos de vídeo e métricas de retenção'
               }
             </p>
           </div>
 
           {/* Content based on active tab */}
           <div className="animate-fade-in">
-            {activeTab === 'macro' ? macroContent : detailedContent}
+            {activeTab === 'macro' && macroContent}
+            {activeTab === 'detailed' && detailedContent}
+            {activeTab === 'criativos' && (
+              <CreativeAnalysis dateRange={filters.dateRange} />
+            )}
           </div>
         </main>
       </div>
