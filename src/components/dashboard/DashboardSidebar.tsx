@@ -50,7 +50,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
     },
     { 
       id: 'criativos', 
-      label: 'Análise', 
+      label: 'Análise Nano', 
       icon: Video,
       onClick: () => onTabChange('criativos')
     },
