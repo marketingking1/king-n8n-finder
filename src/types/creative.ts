@@ -69,7 +69,7 @@ export interface CreativeKPIs {
   avgCompletionRate: number;
   avgWatchTime: number;
   totalLeads: number;
-  totalViews50pct: number;
+  avgRetention50pct: number;  // % médio de quem chegou a 50% do vídeo
   avgCpl: number;
   avgCpm: number;
   avgCtr: number;
