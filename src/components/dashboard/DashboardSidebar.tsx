@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BarChart3, 
+  Video,
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -46,6 +47,12 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       label: 'Análise Detalhada', 
       icon: BarChart3,
       onClick: () => onTabChange('detailed')
+    },
+    { 
+      id: 'criativos', 
+      label: 'Análise Criativos', 
+      icon: Video,
+      onClick: () => onTabChange('criativos')
     },
   ];
 
