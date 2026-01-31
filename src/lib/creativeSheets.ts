@@ -4,7 +4,7 @@ import { VideoCreativeRow, AggregatedCreative, DerivedMetrics, CreativeKPIs } fr
 const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 
 // Planilha de criativos de vídeo
-const SPREADSHEET_ID_CREATIVES = '1ZSG6MlrO9P973Q_S4U36t8Xn9S8R57O6L7fU878864';
+const SPREADSHEET_ID_CREATIVES = '1ZSG6Mlr-20jnVX5Ap5B_hqZlvDdfyMm4BXVOf3G4SrU';
 const SHEET_NAME_CREATIVES = 'dados_video_consolidados';
 
 // Converter serial Excel para Date
