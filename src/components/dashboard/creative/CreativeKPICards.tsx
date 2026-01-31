@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { DollarSign, Eye, Zap, Timer, Users, Target, BarChart3, Percent } from 'lucide-react';
+import { DollarSign, Eye, Zap, Users, Target, BarChart3, Percent } from 'lucide-react';
 import { CreativeKPIs } from '@/types/creative';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
@@ -142,35 +142,29 @@ export function CreativeKPICards({ kpis, isLoading }: CreativeKPICardsProps) {
         index={4}
       />
       <KPICard
-        title="Watch Time Médio"
-        value={`${kpis.avgWatchTime.toFixed(0)}s`}
-        icon={<Timer className="h-4 w-4" />}
-        index={5}
-      />
-      <KPICard
         title="Leads"
         value={formatNumber(kpis.totalLeads)}
         icon={<Users className="h-4 w-4" />}
-        index={6}
+        index={5}
       />
       <KPICard
         title="CPL"
         value={formatCurrency(kpis.avgCpl)}
         icon={<Target className="h-4 w-4" />}
         colorClass={getCplColor(kpis.avgCpl)}
-        index={7}
+        index={6}
       />
       <KPICard
         title="CPM"
         value={formatCurrency(kpis.avgCpm)}
         icon={<DollarSign className="h-4 w-4" />}
-        index={8}
+        index={7}
       />
       <KPICard
         title="CTR"
         value={formatPercent(kpis.avgCtr)}
         icon={<Percent className="h-4 w-4" />}
-        index={9}
+        index={8}
       />
     </div>
   );
