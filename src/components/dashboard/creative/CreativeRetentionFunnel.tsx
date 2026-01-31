@@ -120,21 +120,27 @@ export function CreativeRetentionFunnel({ data, isLoading }: CreativeRetentionFu
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {funnelData.map((stage, index) => (
+        {funnelData.map((stage, index) => (
             <motion.div
               key={stage.name}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="relative"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs lg:text-sm font-medium text-foreground">{stage.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {formatNumber(stage.value)} ({stage.percentage.toFixed(1)}%)
-                </span>
+                <div className="flex items-center gap-3">
+                  {index > 0 && funnelData[index - 1].value > 0 && (
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {((stage.value / funnelData[index - 1].value) * 100).toFixed(1)}% do anterior
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatNumber(stage.value)} ({stage.percentage.toFixed(1)}%)
+                  </span>
+                </div>
               </div>
-              <div className="h-6 lg:h-8 bg-muted/30 rounded-md overflow-hidden relative">
+              <div className="h-6 lg:h-8 bg-muted/30 rounded-md overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(stage.value / maxValue) * 100}%` }}
@@ -143,13 +149,6 @@ export function CreativeRetentionFunnel({ data, isLoading }: CreativeRetentionFu
                   style={{ backgroundColor: stage.color }}
                 />
               </div>
-              {index > 0 && (
-                <div className="absolute -top-1 right-0 text-[10px] text-muted-foreground">
-                  {index > 0 && funnelData[index - 1].value > 0
-                    ? `${((stage.value / funnelData[index - 1].value) * 100).toFixed(1)}% do anterior`
-                    : '-'}
-                </div>
-              )}
             </motion.div>
           ))}
         </div>
