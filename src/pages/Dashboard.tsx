@@ -253,7 +253,7 @@ export default function Dashboard() {
           <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
             <div className="bg-card text-card-foreground px-6 py-4 rounded-xl shadow-2xl border border-border animate-in fade-in zoom-in duration-300 pointer-events-auto">
               <p className="text-sm font-medium text-center">
-                Este filtro só pode ser aplicado na aba <span className="font-bold text-primary">Análise Detalhada</span>
+                Este filtro só pode ser aplicado na aba <span className="font-bold text-primary">Análise Micro</span>
               </p>
             </div>
           </div>
@@ -278,8 +278,8 @@ export default function Dashboard() {
               {activeTab === 'macro' 
                 ? 'Visão Macro' 
                 : activeTab === 'detailed' 
-                  ? 'Análise Detalhada' 
-                  : 'Análise de Criativos'}
+                  ? 'Análise Micro' 
+                  : 'Análise'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {activeTab === 'macro' 

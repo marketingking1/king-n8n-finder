@@ -25,7 +25,7 @@ export function DashboardTabs({ macroContent, detailedContent, activeTab, onTabC
           className="gap-2 px-4"
         >
           <BarChart3 className="h-4 w-4" />
-          Análise Detalhada
+          Análise Micro
         </TabsTrigger>
       </TabsList>
       
