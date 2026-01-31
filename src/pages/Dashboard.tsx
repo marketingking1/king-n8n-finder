@@ -24,7 +24,6 @@ export default function Dashboard() {
   const { user, session, loading: authLoading } = useAuth();
   const { filters, setDateRange, setGranularity, setCampanhas, setGrupos, setCanais, resetFilters } = useFilters();
   const [activeTab, setActiveTab] = useState('macro');
-  const [nanoCampanhas, setNanoCampanhas] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -299,8 +298,7 @@ export default function Dashboard() {
             {activeTab === 'criativos' && (
               <CreativeAnalysis 
                 dateRange={filters.dateRange} 
-                campanhas={nanoCampanhas}
-                onCampanhasChange={setNanoCampanhas}
+                campanhas={filters.campanhas}
               />
             )}
           </div>

@@ -1,8 +1,7 @@
 import { VideoOff, AlertTriangle, RefreshCw } from 'lucide-react';
-import { useFilteredCreativeData, useCreativeFilterOptions } from '@/hooks/useCreativeData';
+import { useFilteredCreativeData } from '@/hooks/useCreativeData';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
-import { MultiSelect } from '@/components/dashboard/MultiSelect';
 import {
   CreativeKPICards,
   CreativeRetentionFunnel,
@@ -14,19 +13,15 @@ import {
 interface CreativeAnalysisProps {
   dateRange?: { from?: Date; to?: Date };
   campanhas?: string[];
-  onCampanhasChange?: (campanhas: string[]) => void;
 }
 
-export function CreativeAnalysis({ dateRange, campanhas = [], onCampanhasChange }: CreativeAnalysisProps) {
+export function CreativeAnalysis({ dateRange, campanhas = [] }: CreativeAnalysisProps) {
   const queryClient = useQueryClient();
   
   const { rawData, aggregated, kpis, isLoading, error } = useFilteredCreativeData({ 
     dateRange,
     campanhas: campanhas.length > 0 ? campanhas : undefined,
   });
-  
-  // Get filter options from creative data
-  const { data: creativeFilterOptions, isLoading: optionsLoading } = useCreativeFilterOptions();
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
@@ -79,29 +74,6 @@ export function CreativeAnalysis({ dateRange, campanhas = [], onCampanhasChange 
 
   return (
     <div className="space-y-6">
-      {/* Campaign Filter for Nano */}
-      {onCampanhasChange && (
-        <div className="flex items-center gap-4 p-4 bg-card rounded-lg border border-border">
-          <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
-          <MultiSelect
-            options={creativeFilterOptions?.campanhas || []}
-            selected={campanhas}
-            onChange={onCampanhasChange}
-            placeholder="Campanhas"
-          />
-          {campanhas.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onCampanhasChange([])}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Limpar
-            </Button>
-          )}
-        </div>
-      )}
-
       {/* KPI Cards */}
       <CreativeKPICards kpis={kpis} isLoading={isLoading} />
 
