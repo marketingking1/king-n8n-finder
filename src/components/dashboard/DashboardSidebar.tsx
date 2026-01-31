@@ -44,13 +44,13 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
     },
     { 
       id: 'detailed', 
-      label: 'Análise Detalhada', 
+      label: 'Análise Micro', 
       icon: BarChart3,
       onClick: () => onTabChange('detailed')
     },
     { 
       id: 'criativos', 
-      label: 'Análise Criativos', 
+      label: 'Análise', 
       icon: Video,
       onClick: () => onTabChange('criativos')
     },
