@@ -69,6 +69,7 @@ export interface CreativeKPIs {
   avgCompletionRate: number;
   avgWatchTime: number;
   totalLeads: number;
+  totalViews50pct: number;
   avgCpl: number;
   avgCpm: number;
   avgCtr: number;
