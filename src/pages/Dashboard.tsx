@@ -76,7 +76,7 @@ export default function Dashboard() {
   const { data: filterOptions } = useSheetsFilterOptions();
   
   // Macro data (current month vs previous month)
-  const { current: macroMetrics, previous: previousMacroMetrics, isLoading: macroLoading } = useMacroData();
+  const { current: macroMetrics, previous: previousMacroMetrics, isLoading: macroLoading } = useMacroData(filters.dateRange);
   
   // Convert sheets data to MarketingData format
   const marketingData = useMemo(() => {
