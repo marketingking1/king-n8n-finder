@@ -11,6 +11,9 @@ import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { MacroKPICards } from '@/components/dashboard/MacroKPICards';
 import { ConversionFunnel } from '@/components/dashboard/ConversionFunnel';
 import { YoYComparison } from '@/components/dashboard/YoYComparison';
+import { ChannelPerformanceTable } from '@/components/dashboard/ChannelPerformanceTable';
+import { ChannelMixChart } from '@/components/dashboard/charts/ChannelMixChart';
+import { ChannelEfficiencyScatter } from '@/components/dashboard/charts/ChannelEfficiencyScatter';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
@@ -65,6 +68,7 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['google-sheets-data'] });
     queryClient.invalidateQueries({ queryKey: ['macro-sheets-data'] });
     queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
+    queryClient.invalidateQueries({ queryKey: ['leads-compradores-data'] });
     toast({
       title: 'Atualizando dados...',
       description: 'Os dados estão sendo recarregados.',
@@ -76,7 +80,7 @@ export default function Dashboard() {
   const { data: filterOptions } = useSheetsFilterOptions();
   
   // Macro data (current month vs previous month)
-  const { current: macroMetrics, previous: previousMacroMetrics, isLoading: macroLoading } = useMacroData(filters.dateRange);
+  const { current: macroMetrics, previous: previousMacroMetrics, channelMetrics, isLoading: macroLoading } = useMacroData(filters.dateRange);
   
   // Convert sheets data to MarketingData format
   const marketingData = useMemo(() => {
@@ -180,10 +184,20 @@ export default function Dashboard() {
         isLoading={macroLoading || dataLoading}
       />
       
-      {/* Funnel and YoY Comparison Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Channel Performance Table */}
+      <ChannelPerformanceTable 
+        data={channelMetrics} 
+        isLoading={macroLoading || dataLoading} 
+      />
+      
+      {/* Funnel, Channel Mix and YoY Comparison Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ConversionFunnel 
           metrics={macroMetrics} 
+          isLoading={macroLoading || dataLoading} 
+        />
+        <ChannelMixChart 
+          data={channelMetrics} 
           isLoading={macroLoading || dataLoading} 
         />
         <YoYComparison 
@@ -195,6 +209,12 @@ export default function Dashboard() {
           isLoading={macroLoading || dataLoading}
         />
       </div>
+
+      {/* Channel Efficiency Scatter */}
+      <ChannelEfficiencyScatter 
+        data={channelMetrics} 
+        isLoading={macroLoading || dataLoading} 
+      />
     </div>
   );
 

@@ -211,6 +211,102 @@ export interface MacroSheetsData {
   custoVendedor: number;
 }
 
+// Interface para cada linha de LEADS_COMPRADORES
+export interface BuyerRow {
+  telefone: string;
+  canal: string;
+  valorCompra: number;
+  dataCompra: string; // normalizado para yyyy-MM-dd
+}
+
+// Dados agregados de LEADS_COMPRADORES por canal
+export interface BuyersByChannel {
+  canal: string;
+  vendas: number;       // count de linhas (cada linha = 1 venda)
+  receita: number;      // sum de valorCompra
+  ticketMedio: number;  // receita / vendas
+}
+
+// Fetch data from LEADS_COMPRADORES (vendas reais por canal)
+export async function fetchLeadsCompradoresData(): Promise<BuyerRow[]> {
+  const SHEET_NAME = 'LEADS_COMPRADORES';
+  const range = `${SHEET_NAME}!A:D`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&_=${Date.now()}`;
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google Sheets API error (LEADS_COMPRADORES):', errorData);
+      throw new Error(`Failed to fetch LEADS_COMPRADORES: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const values: any[][] = data.values || [];
+
+    if (values.length < 2) return [];
+
+    // Header row: Telefone, Canal, Valor da compra, Data da compra
+    // Skip header (row 0), process remaining rows
+    const rows: BuyerRow[] = values.slice(1)
+      .filter(row => row[1] && row[3]) // deve ter canal e data
+      .map(row => {
+        const rawDate = String(row[3] || '').trim();
+        // Datas vêm no formato dd/MM/yyyy ou serial
+        let normalizedDate = rawDate;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawDate)) {
+          const [d, m, y] = rawDate.split('/');
+          normalizedDate = `${y}-${m}-${d}`;
+        } else if (/^\d{4,6}$/.test(rawDate)) {
+          // Serial date
+          const serial = Number(rawDate);
+          if (Number.isFinite(serial)) {
+            const base = new Date(1899, 11, 30);
+            const parsedDate = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
+            if (isValid(parsedDate)) {
+              normalizedDate = format(parsedDate, 'yyyy-MM-dd');
+            }
+          }
+        }
+
+        return {
+          telefone: String(row[0] || ''),
+          canal: String(row[1] || '').trim(),
+          valorCompra: parseNumber(row[2]),
+          dataCompra: normalizedDate,
+        };
+      });
+
+    return rows;
+  } catch (error) {
+    console.error('Error fetching LEADS_COMPRADORES data:', error);
+    throw error;
+  }
+}
+
+// Filter buyers by date range
+export function filterBuyersByDateRange(
+  rows: BuyerRow[],
+  from: Date | undefined,
+  to: Date | undefined
+): BuyerRow[] {
+  const fromDay = from ? startOfDay(from) : undefined;
+  const toDay = to ? endOfDay(to) : undefined;
+
+  return rows.filter(row => {
+    if (!row.dataCompra) return false;
+    const rowDate = parseSheetDate(row.dataCompra);
+    if (!rowDate || !isValid(rowDate)) return false;
+    if (fromDay && rowDate < fromDay) return false;
+    if (toDay && rowDate > toDay) return false;
+    return true;
+  });
+}
+
 // Fetch data from tabela_objetivo (mídia paga - investment/costs)
 export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   // Fetch header first with a wide but tiny range.

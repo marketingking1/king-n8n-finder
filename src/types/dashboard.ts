@@ -67,3 +67,23 @@ export interface FilterState {
   grupos: string[];
   canais: string[];
 }
+
+export interface ChannelMetrics {
+  canal: string;
+  // De tabela_objetivo (mídia paga) — 0 se canal não tem mídia paga
+  investimento: number;
+  impressoes: number;
+  cliques: number;
+  leadsMidia: number;  // leads trackeados pela plataforma de ads
+  ctr: number;
+  cpc: number;
+  cpl: number;
+  // De LEADS_COMPRADORES (vendas reais)
+  vendas: number;       // total de vendas reais (count de BuyerRow)
+  receita: number;      // sum do Valor da compra real
+  ticketMedio: number;  // receita / vendas
+  // Calculados na combinação
+  cpa: number;          // investimento / vendas (0 se não tem investimento)
+  roas: number;         // receita / investimento (0 se não tem investimento)
+  taxaConversao: number; // (vendas / leadsMidia) * 100 (0 se não tem leads de mídia)
+}
