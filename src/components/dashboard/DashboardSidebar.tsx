@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   BarChart3, 
   Video,
+  TrendingUp,
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -53,6 +54,12 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       label: 'Análise Nano', 
       icon: Video,
       onClick: () => onTabChange('criativos')
+    },
+    { 
+      id: 'ltv', 
+      label: 'Análise LTV', 
+      icon: TrendingUp,
+      onClick: () => onTabChange('ltv')
     },
   ];
 
