@@ -230,7 +230,7 @@ export interface BuyersByChannel {
 // Fetch data from COMPRADORES_PLATAFORMA_EDIT (vendas reais por canal)
 export async function fetchLeadsCompradoresData(): Promise<BuyerRow[]> {
   const SHEET_NAME = 'COMPRADORES_PLATAFORMA_EDIT';
-  const range = `${SHEET_NAME}!A:D`;
+  const range = `${SHEET_NAME}!A:C`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&_=${Date.now()}`;
 
   try {
@@ -241,8 +241,8 @@ export async function fetchLeadsCompradoresData(): Promise<BuyerRow[]> {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Google Sheets API error (LEADS_COMPRADORES):', errorData);
-      throw new Error(`Failed to fetch LEADS_COMPRADORES: ${response.status}`);
+      console.error('Google Sheets API error (COMPRADORES_PLATAFORMA_EDIT):', errorData);
+      throw new Error(`Failed to fetch COMPRADORES_PLATAFORMA_EDIT: ${response.status}`);
     }
 
     const data = await response.json();
@@ -250,31 +250,42 @@ export async function fetchLeadsCompradoresData(): Promise<BuyerRow[]> {
 
     if (values.length < 2) return [];
 
-    // Header row: Telefone, Canal, Valor da compra, Data da compra
+    // Header row: EDIT_DATA, CANAL, VALOR DA COMPRA
     // Skip header (row 0), process remaining rows
     const rows: BuyerRow[] = values.slice(1)
-      .filter(row => row[1] && row[3]) // deve ter canal e data
+      .filter(row => row[1] && row[0]) // deve ter canal e data
       .map(row => {
-        const rawDate = String(row[3] || '').trim();
-        // Datas vêm no formato dd/MM/yyyy ou serial
-        let normalizedDate = rawDate;
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawDate)) {
-          const [d, m, y] = rawDate.split('/');
-          normalizedDate = `${y}-${m}-${d}`;
-        } else if (/^\d{4,6}$/.test(rawDate)) {
-          // Serial date
-          const serial = Number(rawDate);
-          if (Number.isFinite(serial)) {
-            const base = new Date(1899, 11, 30);
-            const parsedDate = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
-            if (isValid(parsedDate)) {
-              normalizedDate = format(parsedDate, 'yyyy-MM-dd');
+        const rawDate = row[0];
+        // Datas vêm como serial number (ex: 46023)
+        let normalizedDate = '';
+        
+        if (typeof rawDate === 'number' && Number.isFinite(rawDate)) {
+          const serial = rawDate;
+          const base = new Date(1899, 11, 30);
+          const parsedDate = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
+          if (isValid(parsedDate)) {
+            normalizedDate = format(parsedDate, 'yyyy-MM-dd');
+          }
+        } else if (typeof rawDate === 'string') {
+          const raw = String(rawDate).trim();
+          if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+            const [d, m, y] = raw.split('/');
+            normalizedDate = `${y}-${m}-${d}`;
+          } else if (/^\d{4,6}$/.test(raw)) {
+            // Serial date as string
+            const serial = Number(raw);
+            if (Number.isFinite(serial)) {
+              const base = new Date(1899, 11, 30);
+              const parsedDate = new Date(base.getTime() + serial * 24 * 60 * 60 * 1000);
+              if (isValid(parsedDate)) {
+                normalizedDate = format(parsedDate, 'yyyy-MM-dd');
+              }
             }
           }
         }
 
         return {
-          telefone: String(row[0] || ''),
+          telefone: '', // Não existe nessa planilha
           canal: String(row[1] || '').trim(),
           valorCompra: parseNumber(row[2]),
           dataCompra: normalizedDate,
@@ -283,7 +294,7 @@ export async function fetchLeadsCompradoresData(): Promise<BuyerRow[]> {
 
     return rows;
   } catch (error) {
-    console.error('Error fetching LEADS_COMPRADORES data:', error);
+    console.error('Error fetching COMPRADORES_PLATAFORMA_EDIT data:', error);
     throw error;
   }
 }
