@@ -1,7 +1,6 @@
-import { useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, Upload, X, RefreshCw } from 'lucide-react';
+import { Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
@@ -20,8 +19,6 @@ interface LTVFiltersProps {
   onCanaisChange: (canais: string[]) => void;
   onStatusChange: (status: 'todos' | 'ativos' | 'cancelados') => void;
   onReset: () => void;
-  onUpload: (file: File) => void;
-  isLoading: boolean;
 }
 
 export function LTVFilters({
@@ -31,22 +28,7 @@ export function LTVFilters({
   onCanaisChange,
   onStatusChange,
   onReset,
-  onUpload,
-  isLoading,
 }: LTVFiltersProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onUpload(file);
-    }
-    // Reset input para permitir reupload do mesmo arquivo
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-  
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-border bg-[hsl(215,35%,11%)]">
       {/* Date Range Picker */}
@@ -125,26 +107,6 @@ export function LTVFilters({
       >
         <RefreshCw className="h-4 w-4 mr-1" />
         Limpar
-      </Button>
-      
-      <div className="flex-1" />
-      
-      {/* Upload Button */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-      <Button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isLoading}
-        variant="outline"
-        className="gap-2"
-      >
-        <Upload className="h-4 w-4" />
-        {isLoading ? 'Processando...' : 'Upload CSV'}
       </Button>
     </div>
   );
