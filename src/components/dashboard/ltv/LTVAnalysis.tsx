@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { FileSpreadsheet, Upload } from 'lucide-react';
+import { FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useLTVData } from '@/hooks/useLTVData';
 import { LTVFilters } from './LTVFilters';
 import { LTVKPICards } from './LTVKPICards';
@@ -9,14 +9,13 @@ import { MonthlyChurnChart } from './MonthlyChurnChart';
 import { TicketDistributionChart } from './TicketDistributionChart';
 import { CohortTable } from './CohortTable';
 import { ChannelLTVTable } from './ChannelLTVTable';
-import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function LTVAnalysis() {
   const {
     hasData,
     isLoading,
     error,
-    loadCSV,
     metrics,
     survivalCurve,
     channelLTV,
@@ -32,8 +31,47 @@ export function LTVAnalysis() {
     filterByChannel,
   } = useLTVData();
   
-  // Estado vazio: exibir botão de upload
-  if (!hasData && !isLoading) {
+  // Estado de loading
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-[350px] rounded-xl" />
+          <Skeleton className="h-[350px] rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+  
+  // Estado de erro
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center py-20 px-4"
+      >
+        <div className="rounded-full bg-destructive/10 p-6 mb-6">
+          <AlertCircle className="h-16 w-16 text-destructive" />
+        </div>
+        <h3 className="text-xl font-display font-semibold text-foreground mb-2">
+          Erro ao carregar dados
+        </h3>
+        <p className="text-muted-foreground text-center max-w-md">
+          {error}
+        </p>
+      </motion.div>
+    );
+  }
+  
+  // Estado vazio
+  if (!hasData) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -46,37 +84,9 @@ export function LTVAnalysis() {
         <h3 className="text-xl font-display font-semibold text-foreground mb-2">
           Análise de LTV
         </h3>
-        <p className="text-muted-foreground text-center max-w-md mb-6">
-          Faça upload do arquivo CSV para visualizar as métricas de Lifetime Value dos alunos.
+        <p className="text-muted-foreground text-center max-w-md">
+          Nenhum dado encontrado na aba LTV_TRATADOS.
         </p>
-        <label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) loadCSV(file);
-            }}
-            className="hidden"
-          />
-          <Button asChild size="lg" className="gap-2 cursor-pointer">
-            <span>
-              <Upload className="h-5 w-5" />
-              Upload CSV
-            </span>
-          </Button>
-        </label>
-        
-        {error && (
-          <p className="mt-4 text-sm text-destructive">{error}</p>
-        )}
-        
-        <div className="mt-8 p-4 rounded-lg bg-muted/20 border border-border max-w-lg">
-          <p className="text-xs text-muted-foreground">
-            <strong className="text-foreground">Estrutura esperada do CSV:</strong><br />
-            <code className="text-primary">data_da_matricula_edit, data_cancelamento, data_aluno_ativo, campanha, tag_tratada, valor_mensalidade</code>
-          </p>
-        </div>
       </motion.div>
     );
   }
@@ -91,8 +101,6 @@ export function LTVAnalysis() {
         onCanaisChange={setCanais}
         onStatusChange={setStatus}
         onReset={resetFilters}
-        onUpload={loadCSV}
-        isLoading={isLoading}
       />
       
       {/* KPI Cards */}

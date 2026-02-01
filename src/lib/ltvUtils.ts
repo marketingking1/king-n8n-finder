@@ -11,6 +11,10 @@ import {
   LTVFiltersState,
 } from '@/types/ltv';
 
+// Google Sheets config
+const SPREADSHEET_ID = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
+
 // Data de referência: 01/02/2026
 const REFERENCE_DATE = new Date(2026, 1, 1);
 const ACTIVE_FLAG_SERIAL = 46054;
@@ -56,6 +60,87 @@ export function parseCSVLine(line: string): string[] {
   }
   result.push(current.trim());
   return result;
+}
+
+// Fetch data from LTV_TRATADOS sheet
+export async function fetchLTVData(): Promise<LTVRecord[]> {
+  const SHEET_NAME = 'LTV_TRATADOS';
+  const range = `${SHEET_NAME}!A:F`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&_=${Date.now()}`;
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google Sheets API error (LTV_TRATADOS):', errorData);
+      throw new Error(`Failed to fetch LTV_TRATADOS: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const values: any[][] = data.values || [];
+
+    if (values.length < 2) return [];
+
+    // Header: data_da_matricula_edit, data_cancelamento, data_aluno_ativo, campanha, tag_tratada, valor_mensalidade
+    const records: LTVRecord[] = [];
+    
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      if (!row || row.length < 6) continue;
+      
+      const serialMatricula = typeof row[0] === 'number' ? row[0] : parseFloat(row[0]);
+      const serialCancelamento = typeof row[1] === 'number' ? row[1] : parseFloat(row[1]);
+      const serialAlunoAtivo = typeof row[2] === 'number' ? row[2] : parseFloat(row[2]);
+      const campanha = String(row[3] || '');
+      const canal = String(row[4] || '(sem canal)').trim();
+      const valorMensalidade = parseDecimal(row[5]);
+      
+      const dataMatricula = excelSerialToDate(serialMatricula);
+      if (!dataMatricula) continue;
+      
+      const dataCancelamento = excelSerialToDate(serialCancelamento);
+      const dataAlunoAtivo = excelSerialToDate(serialAlunoAtivo);
+      
+      // Determinar status
+      let status: 'ativo' | 'cancelado' | 'indefinido' = 'indefinido';
+      if (serialAlunoAtivo === ACTIVE_FLAG_SERIAL) {
+        status = 'ativo';
+      } else if (dataCancelamento) {
+        status = 'cancelado';
+      }
+      
+      // Calcular permanência em meses
+      let permanenciaMeses: number | null = null;
+      if (status === 'cancelado' && dataCancelamento) {
+        const dias = differenceInDays(dataCancelamento, dataMatricula);
+        permanenciaMeses = dias / 30.44;
+      } else if (status === 'ativo') {
+        const dias = differenceInDays(REFERENCE_DATE, dataMatricula);
+        permanenciaMeses = dias / 30.44;
+      }
+      
+      records.push({
+        dataMatricula,
+        dataCancelamento,
+        dataAlunoAtivo,
+        campanha,
+        canal: canal || '(sem canal)',
+        valorMensalidade,
+        status,
+        permanenciaMeses,
+      });
+    }
+
+    console.log(`LTV_TRATADOS: Loaded ${records.length} records`);
+    return records;
+  } catch (error) {
+    console.error('Error fetching LTV_TRATADOS data:', error);
+    throw error;
+  }
 }
 
 // Parse do CSV completo

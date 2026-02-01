@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   LTVRecord,
   LTVFiltersState,
@@ -10,7 +11,7 @@ import {
   TicketDistribution,
 } from '@/types/ltv';
 import {
-  parseLTVCSV,
+  fetchLTVData,
   filterLTVRecords,
   calculateLTVMetrics,
   calculateSurvivalCurve,
@@ -22,38 +23,22 @@ import {
 } from '@/lib/ltvUtils';
 
 export function useLTVData() {
-  const [rawRecords, setRawRecords] = useState<LTVRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Fetch data from Google Sheets
+  const { data: rawRecords = [], isLoading, error } = useQuery({
+    queryKey: ['ltv-sheets-data'],
+    queryFn: fetchLTVData,
+    staleTime: 0,
+    gcTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
+  });
   
   const [filters, setFilters] = useState<LTVFiltersState>({
     dateRange: { from: undefined, to: undefined },
     canais: [],
     status: 'todos',
   });
-  
-  // Parse CSV file
-  const loadCSV = useCallback(async (file: File) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const text = await file.text();
-      const records = parseLTVCSV(text);
-      
-      if (records.length === 0) {
-        setError('Nenhum registro válido encontrado no CSV');
-        return;
-      }
-      
-      setRawRecords(records);
-    } catch (err) {
-      setError('Erro ao processar o arquivo CSV');
-      console.error('CSV parsing error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
   
   // Filtered records
   const filteredRecords = useMemo(() => {
@@ -135,10 +120,7 @@ export function useLTVData() {
     
     // Loading/error state
     isLoading,
-    error,
-    
-    // Actions
-    loadCSV,
+    error: error ? String(error) : null,
     
     // Filters
     filters,
