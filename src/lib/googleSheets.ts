@@ -227,9 +227,9 @@ export interface BuyersByChannel {
   ticketMedio: number;  // receita / vendas
 }
 
-// Fetch data from LEADS_COMPRADORES (vendas reais por canal)
+// Fetch data from COMPRADORES_PLATAFORMA_EDIT (vendas reais por canal)
 export async function fetchLeadsCompradoresData(): Promise<BuyerRow[]> {
-  const SHEET_NAME = 'LEADS_COMPRADORES';
+  const SHEET_NAME = 'COMPRADORES_PLATAFORMA_EDIT';
   const range = `${SHEET_NAME}!A:D`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_OBJETIVO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&_=${Date.now()}`;
 
