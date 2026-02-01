@@ -1,4 +1,5 @@
-import { MarketingData, AggregatedMetrics, CampaignMetrics, GroupMetrics, TimeSeriesData, FunnelData, Granularity } from '@/types/dashboard';
+import { MarketingData, AggregatedMetrics, CampaignMetrics, GroupMetrics, TimeSeriesData, FunnelData, Granularity, ChannelMetrics } from '@/types/dashboard';
+import { SheetsMarketingRow, BuyerRow } from '@/lib/googleSheets';
 import { format, isValid, parse, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -166,4 +167,86 @@ export function getCPAColor(cpa: number): 'success' | 'warning' | 'destructive' 
   if (cpa < 300) return 'success';
   if (cpa <= 350) return 'warning';
   return 'destructive';
+}
+
+// Group data by channel combining paid media and buyer data
+export function groupByChannel(
+  paidMediaRows: SheetsMarketingRow[],
+  buyerRows: BuyerRow[]
+): ChannelMetrics[] {
+  // 1. Agregar dados de mídia paga por canal (tabela_objetivo)
+  const paidByChannel: Record<string, {
+    investimento: number;
+    impressoes: number;
+    cliques: number;
+    leads: number;
+  }> = {};
+
+  for (const row of paidMediaRows) {
+    const canal = row.canal || 'Sem Canal';
+    if (!paidByChannel[canal]) {
+      paidByChannel[canal] = { investimento: 0, impressoes: 0, cliques: 0, leads: 0 };
+    }
+    paidByChannel[canal].investimento += row.investimento;
+    paidByChannel[canal].impressoes += row.impressoes;
+    paidByChannel[canal].cliques += row.cliques;
+    paidByChannel[canal].leads += row.leads;
+  }
+
+  // 2. Agregar dados de vendas reais por canal (LEADS_COMPRADORES)
+  const salesByChannel: Record<string, {
+    vendas: number;
+    receita: number;
+  }> = {};
+
+  for (const row of buyerRows) {
+    const canal = row.canal || 'Sem Canal';
+    if (!salesByChannel[canal]) {
+      salesByChannel[canal] = { vendas: 0, receita: 0 };
+    }
+    salesByChannel[canal].vendas += 1;
+    salesByChannel[canal].receita += row.valorCompra;
+  }
+
+  // 3. Combinar: pegar todos os canais de ambas as fontes
+  const allChannels = new Set([
+    ...Object.keys(paidByChannel),
+    ...Object.keys(salesByChannel),
+  ]);
+
+  // 4. Montar ChannelMetrics para cada canal
+  const result: ChannelMetrics[] = [];
+
+  for (const canal of allChannels) {
+    const paid = paidByChannel[canal] || { investimento: 0, impressoes: 0, cliques: 0, leads: 0 };
+    const sales = salesByChannel[canal] || { vendas: 0, receita: 0 };
+
+    const ctr = paid.impressoes > 0 ? (paid.cliques / paid.impressoes) * 100 : 0;
+    const cpc = paid.cliques > 0 ? paid.investimento / paid.cliques : 0;
+    const cpl = paid.leads > 0 ? paid.investimento / paid.leads : 0;
+    const cpa = sales.vendas > 0 && paid.investimento > 0 ? paid.investimento / sales.vendas : 0;
+    const roas = paid.investimento > 0 ? sales.receita / paid.investimento : 0;
+    const ticketMedio = sales.vendas > 0 ? sales.receita / sales.vendas : 0;
+    const taxaConversao = paid.leads > 0 ? (sales.vendas / paid.leads) * 100 : 0;
+
+    result.push({
+      canal,
+      investimento: paid.investimento,
+      impressoes: paid.impressoes,
+      cliques: paid.cliques,
+      leadsMidia: paid.leads,
+      ctr,
+      cpc,
+      cpl,
+      vendas: sales.vendas,
+      receita: sales.receita,
+      ticketMedio,
+      cpa,
+      roas,
+      taxaConversao,
+    });
+  }
+
+  // Ordenar por receita desc (canais com mais receita primeiro)
+  return result.sort((a, b) => b.receita - a.receita);
 }

@@ -5,10 +5,13 @@ import { MIN_DATE } from './useFilters';
 import { useGoogleSheetsData } from './useGoogleSheetsData';
 import { 
   fetchMacroSheetsData, 
+  fetchLeadsCompradoresData,
   filterByDateRange, 
+  filterBuyersByDateRange,
   SheetsMarketingRow 
 } from '@/lib/googleSheets';
-import { DateRange } from '@/types/dashboard';
+import { groupByChannel } from '@/lib/metrics';
+import { DateRange, ChannelMetrics } from '@/types/dashboard';
 
 export interface MacroMetrics {
   investimento: number;
@@ -46,6 +49,19 @@ export function useMacroData(dateRange: DateRange) {
   const { data: macroData, isLoading: isLoadingMacro, error: macroError } = useQuery({
     queryKey: ['macro-sheets-data'],
     queryFn: fetchMacroSheetsData,
+    staleTime: 0,
+    gcTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: true,
+  });
+
+  // Data from LEADS_COMPRADORES (real sales by channel)
+  const { data: buyersData, isLoading: isLoadingBuyers, error: buyersError } = useQuery({
+    queryKey: ['leads-compradores-data'],
+    queryFn: fetchLeadsCompradoresData,
     staleTime: 0,
     gcTime: 2 * 60 * 1000,
     refetchOnMount: 'always',
@@ -126,10 +142,21 @@ export function useMacroData(dateRange: DateRange) {
     };
   }, [sheetsData, previousPeriod]);
 
+  // Calculate channel metrics combining paid media and buyer data
+  const channelMetrics: ChannelMetrics[] = useMemo(() => {
+    if (!sheetsData) return [];
+    const filteredPaid = filterByDateRange(sheetsData.rows, dateRange.from, dateRange.to);
+    const filteredBuyers = buyersData
+      ? filterBuyersByDateRange(buyersData, dateRange.from, dateRange.to)
+      : [];
+    return groupByChannel(filteredPaid, filteredBuyers);
+  }, [sheetsData, buyersData, dateRange]);
+
   return {
     current,
     previous,
-    isLoading: isLoadingSheets || isLoadingMacro,
-    error: sheetsError || macroError,
+    channelMetrics,
+    isLoading: isLoadingSheets || isLoadingMacro || isLoadingBuyers,
+    error: sheetsError || macroError || buyersError,
   };
 }
