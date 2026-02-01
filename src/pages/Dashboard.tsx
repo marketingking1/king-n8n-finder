@@ -18,6 +18,7 @@ import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
 import { CreativeAnalysis } from '@/components/dashboard/CreativeAnalysis';
+import { LTVAnalysis } from '@/components/dashboard/ltv/LTVAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
@@ -299,14 +300,18 @@ export default function Dashboard() {
                 ? 'Visão Macro' 
                 : activeTab === 'detailed' 
                   ? 'Análise Micro' 
-                  : 'Análise Nano'}
+                  : activeTab === 'criativos'
+                    ? 'Análise Nano'
+                    : 'Análise LTV'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {activeTab === 'macro' 
                 ? 'Consolidação geral do negócio e métricas de alto nível'
                 : activeTab === 'detailed'
                   ? 'Performance detalhada de campanhas e métricas de mídia'
-                  : 'Performance de criativos de vídeo e métricas de retenção'
+                  : activeTab === 'criativos'
+                    ? 'Performance de criativos de vídeo e métricas de retenção'
+                    : 'Lifetime Value e análise de retenção de alunos'
               }
             </p>
           </div>
@@ -321,6 +326,7 @@ export default function Dashboard() {
                 campanhas={filters.campanhas}
               />
             )}
+            {activeTab === 'ltv' && <LTVAnalysis />}
           </div>
         </main>
       </div>
