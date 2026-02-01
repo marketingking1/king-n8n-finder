@@ -39,15 +39,19 @@ function calculateInvestmentMetrics(rows: SheetsMarketingRow[]) {
 
 // Get the date range from the data (most recent month with data)
 function getDataDateRange(rows: SheetsMarketingRow[]): { start: Date; end: Date } | null {
-  const dates = rows
-    .map(r => {
-      const d = parseISO(r.data);
-      return isValid(d) ? d : null;
-    })
-    .filter((d): d is Date => d !== null);
+  const dates: Date[] = [];
+  
+  for (const r of rows) {
+    if (!r.data) continue;
+    const d = parseISO(r.data);
+    if (isValid(d)) {
+      dates.push(d);
+    }
+  }
   
   if (dates.length === 0) return null;
   
+  // Use min/max from date-fns with array of dates
   const minDate = min(dates);
   const maxDate = max(dates);
   
