@@ -9,6 +9,7 @@ import {
   SurvivalPoint,
   MonthlyChurnPoint,
   TicketDistribution,
+  StatusBreakdown,
 } from '@/types/ltv';
 import {
   fetchLTVData,
@@ -19,6 +20,7 @@ import {
   calculateMonthlyChurn,
   calculateTicketDistribution,
   calculateCohortData,
+  calculateStatusBreakdown,
   getUniqueChannels,
 } from '@/lib/ltvUtils';
 
@@ -70,6 +72,10 @@ export function useLTVData() {
     return calculateCohortData(filteredRecords);
   }, [filteredRecords]);
   
+  const statusBreakdown: StatusBreakdown[] = useMemo(() => {
+    return calculateStatusBreakdown(filteredRecords);
+  }, [filteredRecords]);
+  
   // Available channels for filter
   const availableChannels = useMemo(() => {
     return getUniqueChannels(rawRecords);
@@ -84,7 +90,7 @@ export function useLTVData() {
     setFilters(prev => ({ ...prev, canais }));
   }, []);
   
-  const setStatus = useCallback((status: 'todos' | 'ativos' | 'cancelados') => {
+  const setStatus = useCallback((status: 'todos' | 'ativo' | 'cancelado' | 'pausado') => {
     setFilters(prev => ({ ...prev, status }));
   }, []);
   
@@ -117,6 +123,7 @@ export function useLTVData() {
     monthlyChurn,
     ticketDistribution,
     cohortData,
+    statusBreakdown,
     
     // Loading/error state
     isLoading,

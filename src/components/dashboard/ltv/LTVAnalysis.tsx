@@ -7,6 +7,7 @@ import { SurvivalCurveChart } from './SurvivalCurveChart';
 import { LTVByChannelChart } from './LTVByChannelChart';
 import { MonthlyChurnChart } from './MonthlyChurnChart';
 import { TicketDistributionChart } from './TicketDistributionChart';
+import { StatusBreakdownChart } from './StatusBreakdownChart';
 import { CohortTable } from './CohortTable';
 import { ChannelLTVTable } from './ChannelLTVTable';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +23,7 @@ export function LTVAnalysis() {
     monthlyChurn,
     ticketDistribution,
     cohortData,
+    statusBreakdown,
     filters,
     availableChannels,
     setDateRange,
@@ -106,7 +108,7 @@ export function LTVAnalysis() {
       {/* KPI Cards */}
       <LTVKPICards metrics={metrics} isLoading={isLoading} />
       
-      {/* Gráficos - Grid 2x2 */}
+      {/* Gráficos - Grid 2x2 (parte 1) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SurvivalCurveChart data={survivalCurve} isLoading={isLoading} />
         <LTVByChannelChart 
@@ -114,12 +116,17 @@ export function LTVAnalysis() {
           onChannelClick={filterByChannel}
           isLoading={isLoading} 
         />
+      </div>
+      
+      {/* Gráficos - Grid 2x2 (parte 2) + Status Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <MonthlyChurnChart data={monthlyChurn} isLoading={isLoading} />
         <TicketDistributionChart 
           data={ticketDistribution} 
           ticketMedio={metrics.ticketMedio}
           isLoading={isLoading} 
         />
+        <StatusBreakdownChart data={statusBreakdown} isLoading={isLoading} />
       </div>
       
       {/* Tabela de Cohort */}

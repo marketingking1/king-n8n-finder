@@ -17,9 +17,16 @@ interface LTVFiltersProps {
   availableChannels: string[];
   onDateRangeChange: (from: Date | undefined, to: Date | undefined) => void;
   onCanaisChange: (canais: string[]) => void;
-  onStatusChange: (status: 'todos' | 'ativos' | 'cancelados') => void;
+  onStatusChange: (status: 'todos' | 'ativo' | 'cancelado' | 'pausado') => void;
   onReset: () => void;
 }
+
+const STATUS_OPTIONS: Array<{ value: 'todos' | 'ativo' | 'cancelado' | 'pausado'; label: string; color?: string }> = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'ativo', label: 'Ativo', color: 'bg-success' },
+  { value: 'cancelado', label: 'Cancelado', color: 'bg-destructive' },
+  { value: 'pausado', label: 'Pausado', color: 'bg-warning' },
+];
 
 export function LTVFilters({
   filters,
@@ -80,20 +87,23 @@ export function LTVFilters({
         />
       </div>
       
-      {/* Status Toggle */}
+      {/* Status Toggle - 4 opções com indicador de cor */}
       <div className="flex rounded-lg border border-border overflow-hidden">
-        {(['todos', 'ativos', 'cancelados'] as const).map((status) => (
+        {STATUS_OPTIONS.map((option) => (
           <button
-            key={status}
-            onClick={() => onStatusChange(status)}
+            key={option.value}
+            onClick={() => onStatusChange(option.value)}
             className={cn(
-              "px-4 py-2 text-sm font-medium transition-colors",
-              filters.status === status
+              "px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2",
+              filters.status === option.value
                 ? "bg-primary text-primary-foreground"
                 : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {option.color && (
+              <span className={cn("w-2 h-2 rounded-full", option.color)} />
+            )}
+            {option.label}
           </button>
         ))}
       </div>

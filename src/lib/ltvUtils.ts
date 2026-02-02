@@ -1,4 +1,4 @@
-import { format, differenceInDays, isValid, startOfMonth, parseISO } from 'date-fns';
+import { format, differenceInMonths, isValid, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   LTVRecord,
@@ -9,6 +9,9 @@ import {
   MonthlyChurnPoint,
   TicketDistribution,
   LTVFiltersState,
+  LTVStatusOriginal,
+  LTVStatusCategory,
+  StatusBreakdown,
 } from '@/types/ltv';
 
 // Google Sheets config
@@ -17,7 +20,29 @@ const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
 
 // Data de referência: 01/02/2026
 const REFERENCE_DATE = new Date(2026, 1, 1);
-const ACTIVE_FLAG_SERIAL = 46054;
+
+// Status mapping para categorias
+const STATUS_TO_CATEGORY: Record<string, LTVStatusCategory> = {
+  'ATIVO': 'ativo',
+  'DESISTENCIA': 'cancelado',
+  'INADIMPLENTE': 'cancelado',
+  'INATIVO': 'cancelado',
+  'PAUSADO': 'pausado',
+  'PAUSADO NA AGENDA': 'pausado',
+};
+
+// Status que contam como churn (cancelados)
+const CHURN_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INADIMPLENTE', 'INATIVO'];
+
+// Cores por status original
+export const STATUS_COLORS: Record<LTVStatusOriginal, string> = {
+  'ATIVO': 'hsl(142, 76%, 36%)',           // verde
+  'DESISTENCIA': 'hsl(0, 84%, 60%)',       // vermelho
+  'INADIMPLENTE': 'hsl(25, 95%, 53%)',     // laranja
+  'PAUSADO': 'hsl(38, 92%, 50%)',          // amarelo
+  'PAUSADO NA AGENDA': 'hsl(48, 96%, 53%)', // amarelo claro
+  'INATIVO': 'hsl(215, 20%, 45%)',         // cinza
+};
 
 // Converter serial Excel para Date
 export function excelSerialToDate(serial: number): Date | null {
@@ -41,31 +66,35 @@ export function parseDecimal(value: string | number): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-// Parse CSV linha a linha
-export function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
+// Parse inteiro
+export function parseInt2(value: string | number): number {
+  if (typeof value === 'number') return Math.floor(value);
+  if (!value) return 0;
+  const parsed = parseInt(String(value).trim(), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
-// Fetch data from LTV_TRATADOS sheet
+// Obter categoria de status
+export function getStatusCategory(status: string): LTVStatusCategory {
+  const normalized = status.trim().toUpperCase();
+  return STATUS_TO_CATEGORY[normalized] || 'cancelado';
+}
+
+// Validar status original
+export function normalizeStatus(status: string): LTVStatusOriginal {
+  const normalized = status.trim().toUpperCase();
+  const validStatuses: LTVStatusOriginal[] = [
+    'ATIVO', 'DESISTENCIA', 'INADIMPLENTE', 'PAUSADO', 'PAUSADO NA AGENDA', 'INATIVO'
+  ];
+  return validStatuses.includes(normalized as LTVStatusOriginal) 
+    ? (normalized as LTVStatusOriginal) 
+    : 'INATIVO';
+}
+
+// Fetch data from LTV_TRATADOS sheet (nova estrutura com 9 colunas)
 export async function fetchLTVData(): Promise<LTVRecord[]> {
   const SHEET_NAME = 'LTV_TRATADOS';
-  const range = `${SHEET_NAME}!A:F`;
+  const range = `${SHEET_NAME}!A:I`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&_=${Date.now()}`;
 
   try {
@@ -85,53 +114,43 @@ export async function fetchLTVData(): Promise<LTVRecord[]> {
 
     if (values.length < 2) return [];
 
-    // Header: data_da_matricula_edit, data_cancelamento, data_aluno_ativo, campanha, tag_tratada, valor_mensalidade
+    // Header esperado (9 colunas):
+    // data_da_matricula_edit, data_cancelamento, status, campanha, tag_tratada, 
+    // valor_mensalidade, tempo_vida_dias, tempo_vida_meses, receita_total
     const records: LTVRecord[] = [];
     
     for (let i = 1; i < values.length; i++) {
       const row = values[i];
-      if (!row || row.length < 6) continue;
+      if (!row || row.length < 9) continue;
       
       const serialMatricula = typeof row[0] === 'number' ? row[0] : parseFloat(row[0]);
       const serialCancelamento = typeof row[1] === 'number' ? row[1] : parseFloat(row[1]);
-      const serialAlunoAtivo = typeof row[2] === 'number' ? row[2] : parseFloat(row[2]);
+      const statusRaw = String(row[2] || '').trim();
       const campanha = String(row[3] || '');
       const canal = String(row[4] || '(sem canal)').trim();
       const valorMensalidade = parseDecimal(row[5]);
+      const tempoVidaDias = parseInt2(row[6]);
+      const tempoVidaMeses = parseInt2(row[7]);
+      const receitaTotal = parseDecimal(row[8]);
       
       const dataMatricula = excelSerialToDate(serialMatricula);
       if (!dataMatricula) continue;
       
       const dataCancelamento = excelSerialToDate(serialCancelamento);
-      const dataAlunoAtivo = excelSerialToDate(serialAlunoAtivo);
-      
-      // Determinar status
-      let status: 'ativo' | 'cancelado' | 'indefinido' = 'indefinido';
-      if (serialAlunoAtivo === ACTIVE_FLAG_SERIAL) {
-        status = 'ativo';
-      } else if (dataCancelamento) {
-        status = 'cancelado';
-      }
-      
-      // Calcular permanência em meses
-      let permanenciaMeses: number | null = null;
-      if (status === 'cancelado' && dataCancelamento) {
-        const dias = differenceInDays(dataCancelamento, dataMatricula);
-        permanenciaMeses = dias / 30.44;
-      } else if (status === 'ativo') {
-        const dias = differenceInDays(REFERENCE_DATE, dataMatricula);
-        permanenciaMeses = dias / 30.44;
-      }
+      const statusOriginal = normalizeStatus(statusRaw);
+      const statusCategory = getStatusCategory(statusRaw);
       
       records.push({
         dataMatricula,
         dataCancelamento,
-        dataAlunoAtivo,
+        statusOriginal,
+        statusCategory,
         campanha,
         canal: canal || '(sem canal)',
         valorMensalidade,
-        status,
-        permanenciaMeses,
+        tempoVidaDias,
+        tempoVidaMeses,
+        receitaTotal,
       });
     }
 
@@ -141,65 +160,6 @@ export async function fetchLTVData(): Promise<LTVRecord[]> {
     console.error('Error fetching LTV_TRATADOS data:', error);
     throw error;
   }
-}
-
-// Parse do CSV completo
-export function parseLTVCSV(csvContent: string): LTVRecord[] {
-  const lines = csvContent.split('\n').filter(line => line.trim());
-  if (lines.length < 2) return [];
-  
-  const records: LTVRecord[] = [];
-  
-  // Pular header
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseCSVLine(lines[i]);
-    if (cols.length < 6) continue;
-    
-    const serialMatricula = parseFloat(cols[0]);
-    const serialCancelamento = parseFloat(cols[1]);
-    const serialAlunoAtivo = parseFloat(cols[2]);
-    const campanha = cols[3] || '';
-    const canal = cols[4] || '(sem canal)';
-    const valorMensalidade = parseDecimal(cols[5]);
-    
-    const dataMatricula = excelSerialToDate(serialMatricula);
-    if (!dataMatricula) continue; // Ignorar registros sem data válida
-    
-    const dataCancelamento = excelSerialToDate(serialCancelamento);
-    const dataAlunoAtivo = excelSerialToDate(serialAlunoAtivo);
-    
-    // Determinar status
-    let status: 'ativo' | 'cancelado' | 'indefinido' = 'indefinido';
-    if (serialAlunoAtivo === ACTIVE_FLAG_SERIAL) {
-      status = 'ativo';
-    } else if (dataCancelamento) {
-      status = 'cancelado';
-    }
-    
-    // Calcular permanência em meses
-    let permanenciaMeses: number | null = null;
-    if (status === 'cancelado' && dataCancelamento) {
-      const dias = differenceInDays(dataCancelamento, dataMatricula);
-      permanenciaMeses = dias / 30.44;
-    } else if (status === 'ativo') {
-      // Permanência parcial para ativos
-      const dias = differenceInDays(REFERENCE_DATE, dataMatricula);
-      permanenciaMeses = dias / 30.44;
-    }
-    
-    records.push({
-      dataMatricula,
-      dataCancelamento,
-      dataAlunoAtivo,
-      campanha,
-      canal: canal || '(sem canal)',
-      valorMensalidade,
-      status,
-      permanenciaMeses,
-    });
-  }
-  
-  return records;
 }
 
 // Aplicar filtros
@@ -221,11 +181,8 @@ export function filterLTVRecords(
       return false;
     }
     
-    // Filtro de status
-    if (filters.status === 'ativos' && record.status !== 'ativo') {
-      return false;
-    }
-    if (filters.status === 'cancelados' && record.status !== 'cancelado') {
+    // Filtro de status (categoria)
+    if (filters.status !== 'todos' && record.statusCategory !== filters.status) {
       return false;
     }
     
@@ -233,7 +190,7 @@ export function filterLTVRecords(
   });
 }
 
-// Calcular métricas principais
+// Calcular métricas principais (usando valores pré-calculados)
 export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
   if (records.length === 0) {
     return {
@@ -245,39 +202,32 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
       totalAlunos: 0,
       alunosAtivos: 0,
       alunosCancelados: 0,
+      alunosPausados: 0,
     };
   }
   
-  const cancelados = records.filter(r => r.status === 'cancelado');
-  const ativos = records.filter(r => r.status === 'ativo');
+  const ativos = records.filter(r => r.statusOriginal === 'ATIVO');
+  const cancelados = records.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
+  const pausados = records.filter(r => r.statusCategory === 'pausado');
   
-  // Ticket médio
+  // LTV Médio: média(receita_total) - valor pré-calculado
+  const ltvMedio = records.reduce((sum, r) => sum + r.receitaTotal, 0) / records.length;
+  
+  // Ticket médio: média(valor_mensalidade)
   const ticketMedio = records.reduce((sum, r) => sum + r.valorMensalidade, 0) / records.length;
   
-  // Permanência média (apenas cancelados)
-  const permanenciaMedia = cancelados.length > 0
-    ? cancelados.reduce((sum, r) => sum + (r.permanenciaMeses || 0), 0) / cancelados.length
-    : 0;
+  // Permanência média: média(tempo_vida_meses)
+  const permanenciaMedia = records.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / records.length;
   
-  // LTV médio
-  const ltvMedio = ticketMedio * permanenciaMedia;
-  
-  // Taxa de churn
+  // Taxa de churn: (DESISTENCIA + INADIMPLENTE + INATIVO) / total × 100
   const taxaChurn = (cancelados.length / records.length) * 100;
   
-  // Retenção mês 3 - alunos que ficaram mais de 3 meses
-  // Elegíveis: matriculados há mais de 3 meses
+  // Retenção mês 3: alunos com tempo_vida_meses > 3 / elegíveis × 100
   const tresMesesAtras = new Date(REFERENCE_DATE);
   tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
   
   const elegiveisM3 = records.filter(r => r.dataMatricula <= tresMesesAtras);
-  const sobreviventesM3 = elegiveisM3.filter(r => {
-    if (r.status === 'ativo') return true;
-    if (r.status === 'cancelado' && r.permanenciaMeses !== null) {
-      return r.permanenciaMeses >= 3;
-    }
-    return false;
-  });
+  const sobreviventesM3 = elegiveisM3.filter(r => r.tempoVidaMeses > 3);
   
   const retencaoMes3 = elegiveisM3.length > 0
     ? (sobreviventesM3.length / elegiveisM3.length) * 100
@@ -292,10 +242,11 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
     totalAlunos: records.length,
     alunosAtivos: ativos.length,
     alunosCancelados: cancelados.length,
+    alunosPausados: pausados.length,
   };
 }
 
-// Curva de sobrevivência
+// Curva de sobrevivência (usando tempo_vida_meses pré-calculado)
 export function calculateSurvivalCurve(records: LTVRecord[]): SurvivalPoint[] {
   const points: SurvivalPoint[] = [];
   
@@ -311,14 +262,8 @@ export function calculateSurvivalCurve(records: LTVRecord[]): SurvivalPoint[] {
       continue;
     }
     
-    // Sobreviventes: não cancelaram antes do mês M
-    const sobreviventes = elegiveis.filter(r => {
-      if (r.status === 'ativo') return true;
-      if (r.status === 'cancelado' && r.permanenciaMeses !== null) {
-        return r.permanenciaMeses >= mes;
-      }
-      return true; // indefinido conta como sobrevivente
-    });
+    // Sobreviventes: alunos com tempo_vida_meses > M
+    const sobreviventes = elegiveis.filter(r => r.tempoVidaMeses > mes);
     
     const taxa = (sobreviventes.length / elegiveis.length) * 100;
     
@@ -333,7 +278,7 @@ export function calculateSurvivalCurve(records: LTVRecord[]): SurvivalPoint[] {
   return points;
 }
 
-// LTV por canal
+// LTV por canal (usando receita_total pré-calculado)
 export function calculateLTVByChannel(records: LTVRecord[]): ChannelLTVData[] {
   const channelMap: Record<string, LTVRecord[]> = {};
   
@@ -350,16 +295,13 @@ export function calculateLTVByChannel(records: LTVRecord[]): ChannelLTVData[] {
   for (const [canal, channelRecords] of Object.entries(channelMap)) {
     if (channelRecords.length < 5) continue; // Mínimo 5 alunos
     
-    const cancelados = channelRecords.filter(r => r.status === 'cancelado');
-    const ativos = channelRecords.filter(r => r.status === 'ativo');
+    const cancelados = channelRecords.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
+    const ativos = channelRecords.filter(r => r.statusOriginal === 'ATIVO');
     
+    // Usar valores pré-calculados
     const ticketMedio = channelRecords.reduce((sum, r) => sum + r.valorMensalidade, 0) / channelRecords.length;
-    
-    const permanenciaMedia = cancelados.length > 0
-      ? cancelados.reduce((sum, r) => sum + (r.permanenciaMeses || 0), 0) / cancelados.length
-      : 0;
-    
-    const ltv = ticketMedio * permanenciaMedia;
+    const permanenciaMedia = channelRecords.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / channelRecords.length;
+    const ltv = channelRecords.reduce((sum, r) => sum + r.receitaTotal, 0) / channelRecords.length;
     const churnPercent = (cancelados.length / channelRecords.length) * 100;
     
     result.push({
@@ -376,9 +318,11 @@ export function calculateLTVByChannel(records: LTVRecord[]): ChannelLTVData[] {
   return result.sort((a, b) => b.ltv - a.ltv);
 }
 
-// Churn mensal (últimos 12 meses)
+// Churn mensal (últimos 12 meses) - apenas status de churn
 export function calculateMonthlyChurn(records: LTVRecord[]): MonthlyChurnPoint[] {
-  const cancelados = records.filter(r => r.status === 'cancelado' && r.dataCancelamento);
+  const cancelados = records.filter(r => 
+    CHURN_STATUSES.includes(r.statusOriginal) && r.dataCancelamento
+  );
   
   const monthMap: Record<string, number> = {};
   
@@ -433,7 +377,40 @@ export function calculateTicketDistribution(records: LTVRecord[]): TicketDistrib
   return distribution;
 }
 
-// Tabela de cohort
+// Breakdown por status original
+export function calculateStatusBreakdown(records: LTVRecord[]): StatusBreakdown[] {
+  const statusCount: Record<LTVStatusOriginal, number> = {
+    'ATIVO': 0,
+    'DESISTENCIA': 0,
+    'INADIMPLENTE': 0,
+    'PAUSADO': 0,
+    'PAUSADO NA AGENDA': 0,
+    'INATIVO': 0,
+  };
+  
+  for (const record of records) {
+    statusCount[record.statusOriginal]++;
+  }
+  
+  const total = records.length;
+  const result: StatusBreakdown[] = [];
+  
+  for (const [status, quantidade] of Object.entries(statusCount)) {
+    if (quantidade > 0) {
+      result.push({
+        status: status as LTVStatusOriginal,
+        quantidade,
+        percentual: total > 0 ? (quantidade / total) * 100 : 0,
+        color: STATUS_COLORS[status as LTVStatusOriginal],
+      });
+    }
+  }
+  
+  // Ordenar por quantidade decrescente
+  return result.sort((a, b) => b.quantidade - a.quantidade);
+}
+
+// Tabela de cohort (usando valores pré-calculados)
 export function calculateCohortData(records: LTVRecord[]): CohortData[] {
   const cohortMap: Record<string, LTVRecord[]> = {};
   
@@ -449,17 +426,16 @@ export function calculateCohortData(records: LTVRecord[]): CohortData[] {
   
   for (const [cohortKey, cohortRecords] of Object.entries(cohortMap)) {
     const cohortDate = parseISO(`${cohortKey}-01`);
-    const cancelados = cohortRecords.filter(r => r.status === 'cancelado');
+    const cancelados = cohortRecords.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
+    const ativos = cohortRecords.filter(r => r.statusOriginal === 'ATIVO');
     
+    // Usar valores pré-calculados
     const ticketMedio = cohortRecords.reduce((sum, r) => sum + r.valorMensalidade, 0) / cohortRecords.length;
-    
-    const permanenciaMedia = cancelados.length > 0
-      ? cancelados.reduce((sum, r) => sum + (r.permanenciaMeses || 0), 0) / cancelados.length
-      : 0;
+    const permanenciaMedia = cohortRecords.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / cohortRecords.length;
+    const ltv = cohortRecords.reduce((sum, r) => sum + r.receitaTotal, 0) / cohortRecords.length;
     
     const taxaChurn = (cancelados.length / cohortRecords.length) * 100;
     const taxaRetencao = 100 - taxaChurn;
-    const ltv = ticketMedio * permanenciaMedia;
     
     result.push({
       cohort: format(cohortDate, 'MMM/yyyy', { locale: ptBR }),
@@ -470,6 +446,7 @@ export function calculateCohortData(records: LTVRecord[]): CohortData[] {
       taxaChurn,
       taxaRetencao,
       ltv,
+      ativos: ativos.length,
     });
   }
   
