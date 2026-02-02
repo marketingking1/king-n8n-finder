@@ -4,7 +4,7 @@ import { subDays } from 'date-fns';
 import { MIN_DATE } from './useFilters';
 import { useGoogleSheetsData } from './useGoogleSheetsData';
 import { 
-  fetchMacroSheetsData, 
+  fetchMacro2026Data,
   fetchLeadsCompradoresData,
   filterByDateRange, 
   filterBuyersByDateRange,
@@ -22,6 +22,14 @@ export interface MacroMetrics {
   conversoes: number;
   ctr: number;
   custoVendedor: number;
+  // Novas métricas da planilha 2026
+  faturamento?: number;
+  ticketMedio?: number;
+  cpa?: number;
+  cpl?: number;
+  roas?: number;
+  roi?: number;
+  taxaConversao?: number;
 }
 
 // Calculate investment/impressions/clicks from tabela_objetivo (paid media only)
@@ -45,10 +53,10 @@ export function useMacroData(dateRange: DateRange) {
   // Data from tabela_objetivo (paid media - investment, impressions, clicks)
   const { data: sheetsData, isLoading: isLoadingSheets, error: sheetsError } = useGoogleSheetsData();
   
-  // Data from Dados_macro_vendas (all business - total sales, leads for the month)
-  const { data: macroData, isLoading: isLoadingMacro, error: macroError } = useQuery({
-    queryKey: ['macro-sheets-data'],
-    queryFn: fetchMacroSheetsData,
+  // Data from 2.DADOS_MENSAL_2026 (nova planilha de referência)
+  const { data: macro2026Data, isLoading: isLoadingMacro, error: macroError } = useQuery({
+    queryKey: ['macro-2026-data'],
+    queryFn: fetchMacro2026Data,
     staleTime: 0,
     gcTime: 2 * 60 * 1000,
     refetchOnMount: 'always',
@@ -91,7 +99,7 @@ export function useMacroData(dateRange: DateRange) {
 
   // Current period metrics - filtered by the selected date range
   const current = useMemo(() => {
-    if (!sheetsData || !macroData) return undefined;
+    if (!sheetsData || !macro2026Data) return undefined;
     
     // Investment metrics from tabela_objetivo (paid media) - filtered by selected date range
     const filteredSheets = filterByDateRange(sheetsData.rows, dateRange.from, dateRange.to);
@@ -104,21 +112,30 @@ export function useMacroData(dateRange: DateRange) {
       console.debug('[MacroData] Total rows in sheetsData:', sheetsData.rows.length);
       console.debug('[MacroData] Filtered rows count:', filteredSheets.length);
       console.debug('[MacroData] Investment calculated:', investmentMetrics.investimento);
+      console.debug('[MacroData] Macro2026Data:', macro2026Data);
     }
     
-    // Volume from Dados_macro_vendas is TOTAL for the month (no date filtering needed)
+    // Volume from 2.DADOS_MENSAL_2026 (dados mensais de 2026)
     return {
       investimento: investmentMetrics.investimento,
       impressoes: investmentMetrics.impressoes,
       cliques: investmentMetrics.cliques,
       ctr: investmentMetrics.ctr,
-      // Volume from Dados_macro_vendas (100% of business - monthly totals)
-      leads: macroData.totalLeads,
-      conversoes: macroData.totalVendas,
-      receita: 0, // Will be calculated in component with TICKET_MEDIO
-      custoVendedor: macroData.custoVendedor,
+      // Volume from planilha 2026 (monthly totals)
+      leads: macro2026Data.totalLeads,
+      conversoes: macro2026Data.totalVendas,
+      receita: macro2026Data.faturamento, // Usar faturamento da planilha 2026
+      custoVendedor: macro2026Data.custoVendedor,
+      // Novas métricas da planilha 2026
+      faturamento: macro2026Data.faturamento,
+      ticketMedio: macro2026Data.ticketMedio,
+      cpa: macro2026Data.cpa,
+      cpl: macro2026Data.cpl,
+      roas: macro2026Data.roas,
+      roi: macro2026Data.roi,
+      taxaConversao: macro2026Data.taxaConversao,
     };
-  }, [sheetsData, macroData, dateRange]);
+  }, [sheetsData, macro2026Data, dateRange]);
 
   // Previous period metrics (for investment comparison)
   const previous = useMemo(() => {
@@ -128,13 +145,13 @@ export function useMacroData(dateRange: DateRange) {
     const filteredSheets = filterByDateRange(sheetsData.rows, previousPeriod.from, previousPeriod.to);
     const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
 
-    // Note: Dados_macro_vendas doesn't have historical data, so no previous period for sales/leads
+    // Note: planilha 2026 não tem dados históricos por período, então não há comparativo de vendas/leads
     return {
       investimento: investmentMetrics.investimento,
       impressoes: investmentMetrics.impressoes,
       cliques: investmentMetrics.cliques,
       ctr: investmentMetrics.ctr,
-      // No historical macro data available
+      // No historical macro data available for previous period
       leads: 0,
       conversoes: 0,
       receita: 0,
