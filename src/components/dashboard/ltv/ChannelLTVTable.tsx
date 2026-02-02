@@ -90,15 +90,24 @@ export function ChannelLTVTable({ data, isLoading }: ChannelLTVTableProps) {
     }
   };
   
-  // Calcular totais
+  // Calcular totais (Bug 1 & 2: usar média ponderada para LTV e Churn)
   const totals = useMemo(() => {
     const totalAlunos = data.reduce((sum, d) => sum + d.alunos, 0);
     const totalAtivos = data.reduce((sum, d) => sum + d.ativos, 0);
-    const totalCancelados = totalAlunos - totalAtivos;
-    const ticketMedio = data.reduce((sum, d) => sum + d.ticketMedio * d.alunos, 0) / totalAlunos || 0;
-    const permanenciaMedia = data.reduce((sum, d) => sum + d.permanenciaMedia * d.alunos, 0) / totalAlunos || 0;
-    const ltvMedio = ticketMedio * permanenciaMedia;
-    const churnPercent = totalAlunos > 0 ? (totalCancelados / totalAlunos) * 100 : 0;
+    const ticketMedio = totalAlunos > 0
+      ? data.reduce((sum, d) => sum + d.ticketMedio * d.alunos, 0) / totalAlunos
+      : 0;
+    const permanenciaMedia = totalAlunos > 0
+      ? data.reduce((sum, d) => sum + d.permanenciaMedia * d.alunos, 0) / totalAlunos
+      : 0;
+    // Bug 1: LTV total por média ponderada dos LTVs dos canais
+    const ltvMedio = totalAlunos > 0
+      ? data.reduce((sum, d) => sum + d.ltv * d.alunos, 0) / totalAlunos
+      : 0;
+    // Bug 2: Churn total por média ponderada (não conta pausados como churn)
+    const churnPercent = totalAlunos > 0
+      ? data.reduce((sum, d) => sum + (d.churnPercent / 100) * d.alunos, 0) / totalAlunos * 100
+      : 0;
     
     return {
       alunos: totalAlunos,
