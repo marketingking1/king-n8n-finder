@@ -47,7 +47,7 @@ export function LTVKPICards({ metrics, isLoading }: LTVKPICardsProps) {
     {
       title: 'Permanência Média',
       value: `${metrics.permanenciaMedia.toFixed(1)} meses`,
-      subtitle: 'Tempo médio até churn',
+      subtitle: 'Tempo médio de vida',
       icon: Clock,
       colorClass: 'text-primary',
       bgClass: 'bg-primary/10',
@@ -55,7 +55,7 @@ export function LTVKPICards({ metrics, isLoading }: LTVKPICardsProps) {
     {
       title: 'Taxa de Churn',
       value: formatPercent(metrics.taxaChurn),
-      subtitle: '% de alunos que cancelaram',
+      subtitle: '% de alunos cancelados',
       icon: TrendingDown,
       colorClass: 'text-destructive',
       bgClass: 'bg-destructive/10',
@@ -71,7 +71,7 @@ export function LTVKPICards({ metrics, isLoading }: LTVKPICardsProps) {
     {
       title: 'Total de Alunos',
       value: formatNumber(metrics.totalAlunos),
-      subtitle: `Ativos: ${formatNumber(metrics.alunosAtivos)} · Cancelados: ${formatNumber(metrics.alunosCancelados)}`,
+      subtitle: `Ativos: ${formatNumber(metrics.alunosAtivos)} · Cancelados: ${formatNumber(metrics.alunosCancelados)} · Pausados: ${formatNumber(metrics.alunosPausados)}`,
       icon: Users,
       colorClass: 'text-primary',
       bgClass: 'bg-primary/10',

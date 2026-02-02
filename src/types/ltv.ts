@@ -1,14 +1,28 @@
 // Types for LTV Analysis
 
+// Status original da planilha
+export type LTVStatusOriginal = 
+  | 'ATIVO' 
+  | 'DESISTENCIA' 
+  | 'INADIMPLENTE' 
+  | 'PAUSADO' 
+  | 'PAUSADO NA AGENDA' 
+  | 'INATIVO';
+
+// Categoria agrupada para filtros
+export type LTVStatusCategory = 'ativo' | 'cancelado' | 'pausado';
+
 export interface LTVRecord {
   dataMatricula: Date;
   dataCancelamento: Date | null;
-  dataAlunoAtivo: Date | null;
+  statusOriginal: LTVStatusOriginal;
+  statusCategory: LTVStatusCategory;
   campanha: string;
   canal: string;
   valorMensalidade: number;
-  status: 'ativo' | 'cancelado' | 'indefinido';
-  permanenciaMeses: number | null; // null para ativos
+  tempoVidaDias: number;
+  tempoVidaMeses: number;
+  receitaTotal: number; // LTV individual já calculado
 }
 
 export interface LTVFiltersState {
@@ -17,7 +31,7 @@ export interface LTVFiltersState {
     to: Date | undefined;
   };
   canais: string[];
-  status: 'todos' | 'ativos' | 'cancelados';
+  status: 'todos' | 'ativo' | 'cancelado' | 'pausado';
 }
 
 export interface LTVMetrics {
@@ -29,6 +43,7 @@ export interface LTVMetrics {
   totalAlunos: number;
   alunosAtivos: number;
   alunosCancelados: number;
+  alunosPausados: number;
 }
 
 export interface CohortData {
@@ -40,6 +55,7 @@ export interface CohortData {
   taxaChurn: number;
   taxaRetencao: number;
   ltv: number;
+  ativos: number;
 }
 
 export interface ChannelLTVData {
@@ -68,4 +84,11 @@ export interface TicketDistribution {
   faixa: string;
   quantidade: number;
   percentual: number;
+}
+
+export interface StatusBreakdown {
+  status: LTVStatusOriginal;
+  quantidade: number;
+  percentual: number;
+  color: string;
 }

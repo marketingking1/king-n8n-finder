@@ -19,7 +19,7 @@ interface CohortTableProps {
   isLoading?: boolean;
 }
 
-type SortField = 'cohort' | 'alunos' | 'ticketMedio' | 'permanenciaMedia' | 'taxaChurn' | 'taxaRetencao' | 'ltv';
+type SortField = 'cohort' | 'alunos' | 'ticketMedio' | 'permanenciaMedia' | 'taxaChurn' | 'taxaRetencao' | 'ltv' | 'ativos';
 type SortDirection = 'asc' | 'desc';
 
 // Função para cor de heatmap
@@ -73,6 +73,10 @@ export function CohortTable({ data, isLoading }: CohortTableProps) {
         case 'ltv':
           aVal = a.ltv;
           bVal = b.ltv;
+          break;
+        case 'ativos':
+          aVal = a.ativos;
+          bVal = b.ativos;
           break;
       }
       
@@ -154,9 +158,10 @@ export function CohortTable({ data, isLoading }: CohortTableProps) {
               <SortableHeader field="alunos">Alunos</SortableHeader>
               <SortableHeader field="ticketMedio">Ticket Médio</SortableHeader>
               <SortableHeader field="permanenciaMedia">Permanência</SortableHeader>
+              <SortableHeader field="ltv">LTV Médio</SortableHeader>
               <SortableHeader field="taxaChurn">Churn %</SortableHeader>
               <SortableHeader field="taxaRetencao">Retenção %</SortableHeader>
-              <SortableHeader field="ltv">LTV</SortableHeader>
+              <SortableHeader field="ativos">Ativos</SortableHeader>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -173,6 +178,11 @@ export function CohortTable({ data, isLoading }: CohortTableProps) {
                 <TableCell>{formatCurrency(row.ticketMedio)}</TableCell>
                 <TableCell>{row.permanenciaMedia.toFixed(1)} meses</TableCell>
                 <TableCell
+                  style={{ backgroundColor: getHeatmapColor(row.ltv, ltvRange.min, ltvRange.max, 'positive') }}
+                >
+                  <span className="font-semibold text-success">{formatCurrency(row.ltv)}</span>
+                </TableCell>
+                <TableCell
                   style={{ backgroundColor: getHeatmapColor(row.taxaChurn, churnRange.min, churnRange.max, 'negative') }}
                 >
                   <span className="text-destructive">{formatPercent(row.taxaChurn)}</span>
@@ -182,11 +192,7 @@ export function CohortTable({ data, isLoading }: CohortTableProps) {
                 >
                   <span className="text-success">{formatPercent(row.taxaRetencao)}</span>
                 </TableCell>
-                <TableCell
-                  style={{ backgroundColor: getHeatmapColor(row.ltv, ltvRange.min, ltvRange.max, 'positive') }}
-                >
-                  <span className="font-semibold text-success">{formatCurrency(row.ltv)}</span>
-                </TableCell>
+                <TableCell>{formatNumber(row.ativos)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
