@@ -6,11 +6,7 @@ const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 const SPREADSHEET_ID_OBJETIVO = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
 const SHEET_NAME_OBJETIVO = 'tabela_objetivo';
 
-// Planilha 2: Dados_macro_vendas (todas as vendas - orgânico + mídia) - LEGADO
-const SPREADSHEET_ID_MACRO = '1FLAmZ4rL2OmxABfIyiPSl9UTgmsC4zc8m039c175ix4';
-const SHEET_NAME_MACRO = 'Dados_macro_vendas';
-
-// Planilha 3: NOVA - Dados Mensal 2026 (substitui Dados_macro_vendas para 2026)
+// Planilha 2: Dados Mensal 2026 (fonte principal para métricas Macro)
 const SPREADSHEET_ID_2026 = '1T5PC6l9bK4ZULucGt_DQrNhZHeArFKU4dFQtolePoJA';
 const SHEET_NAME_2026 = '2.DADOS_MENSAL_2026';
 
@@ -576,42 +572,7 @@ export async function fetchMacro2026Data(): Promise<Macro2026Data> {
   }
 }
 
-// LEGADO: Fetch data from Dados_macro_vendas (ALL sales - organic + paid - monthly summary)
-export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
-  const range = `${SHEET_NAME_MACRO}!A:C`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_MACRO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&_=${Date.now()}`;
-
-  try {
-    const response = await fetch(url, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Google Sheets API error (macro):', errorData);
-      throw new Error(`Failed to fetch macro data: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const values: string[][] = data.values || [];
-    
-    // Row 2 contains the totals (row 1 is header)
-    const totalsRow = values[1] || [];
-    
-    return {
-      totalVendas: parseNumber(totalsRow[0]),
-      totalLeads: parseNumber(totalsRow[1]),
-      custoVendedor: parseNumber(totalsRow[2]),
-    };
-  } catch (error) {
-    console.error('Error fetching macro sheets data:', error);
-    throw error;
-  }
-}
+// Nota: fetchMacroSheetsData removida - usamos apenas fetchMacro2026Data agora
 
 // Filter data by date range
 export function filterByDateRange(
