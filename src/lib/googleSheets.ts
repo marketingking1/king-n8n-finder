@@ -476,27 +476,31 @@ export interface Macro2026Data {
   // Métricas principais
   totalVendas: number;      // Vendas (total do mês)
   totalLeads: number;       // Leads (total do mês)
-  custoVendedor: number;    // Custo por Vendedor (calculado)
-  // Métricas extras disponíveis na planilha 2026
+  totalMql: number;         // MQL (total do mês)
+  // Métricas extras disponíveis na planilha LOVABLE_HISTORICO_2026
   faturamento: number;      // Faturamento
   ticketMedio: number;      // Ticket Médio
   investimento: number;     // Investimento Mensal
-  cpa: number;              // CPA
+  cpa: number;              // CPA (Custo por Aquisição - mídia)
+  cac: number;              // CAC (CPA + Custo Vendedor)
   cpl: number;              // CPL
+  cpmql: number;            // Custo por MQL
   roas: number;             // ROAS
   roi: number;              // ROI
-  taxaConversao: number;    // Taxa de Conversão (%)
+  taxaConversao: number;    // Taxa de Conversão Lead > MQL (%)
+  taxaConversaoMqlVenda: number; // Taxa de Conversão MQL > Venda (%)
 }
 
-// Fetch data from 2.DADOS_MENSAL_2026 (nova planilha de referência 2026)
+// Fetch data from LOVABLE_HISTORICO_2026 (planilha de referência 2026)
 // IMPORTANT: usa o período selecionado no filtro (dateRange) para escolher o(s) mês(es) a consolidar.
+// Estrutura da planilha: Coluna A = nome da métrica, Colunas D-O (índices 3-14) = Jan-Dez
 export async function fetchMacro2026Data(params?: {
   from?: Date;
   to?: Date;
 }): Promise<Macro2026Data> {
-  // A planilha tem métricas na coluna A e valores mensais nas colunas B-M (Jan-Dez)
-  // Estrutura: Row 1=header, Row 2+ = métricas
-  const range = `${SHEET_NAME_2026}!A:N`;
+  // A planilha tem métricas na coluna A e valores mensais nas colunas D-O (Jan-Dez)
+  // Colunas A, B, C são: nome_métrica, vazio, vazio
+  const range = `${SHEET_NAME_2026}!A:O`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_2026}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=FORMATTED_VALUE&_=${Date.now()}`;
 
   try {
@@ -510,7 +514,7 @@ export async function fetchMacro2026Data(params?: {
     
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Google Sheets API error (2026):', errorData);
+      console.error('Google Sheets API error (LOVABLE_HISTORICO_2026):', errorData);
       throw new Error(`Failed to fetch 2026 data: ${response.status}`);
     }
 
@@ -523,7 +527,9 @@ export async function fetchMacro2026Data(params?: {
     }
     
     // Mapa de métricas: nome_métrica -> valor consolidado do(s) mês(es) selecionados.
-    // Colunas B-M (index 1-12) = Jan-Dez.
+    // Colunas D-O (index 3-14) = Jan-Dez. Offset de +2 em relação ao mês (Jan=1 -> coluna index 3)
+    const MONTH_COLUMN_OFFSET = 2; // mês 1 (Jan) está na coluna índice 3
+    
     const startDate = params?.from ?? new Date();
     const endDate = params?.to ?? params?.from ?? startDate;
 
@@ -531,8 +537,12 @@ export async function fetchMacro2026Data(params?: {
     const endMonth = Math.min(12, Math.max(1, endDate.getMonth() + 1));
     const monthStart = Math.min(startMonth, endMonth);
     const monthEnd = Math.max(startMonth, endMonth);
-    const monthIndexes = Array.from({ length: monthEnd - monthStart + 1 }, (_, i) => monthStart + i);
-    const isMultiMonth = monthIndexes.length > 1;
+    // Índices de coluna: Jan=3, Fev=4, Mar=5, etc.
+    const columnIndexes = Array.from(
+      { length: monthEnd - monthStart + 1 }, 
+      (_, i) => monthStart + i + MONTH_COLUMN_OFFSET
+    );
+    const isMultiMonth = columnIndexes.length > 1;
 
     const metricsSumMap: Record<string, number> = {};
 
@@ -541,21 +551,22 @@ export async function fetchMacro2026Data(params?: {
       if (!metricName) continue;
 
       let sum = 0;
-      for (const monthIndex of monthIndexes) {
-        sum += parseNumber(row[monthIndex]);
+      for (const colIndex of columnIndexes) {
+        sum += parseNumber(row[colIndex]);
       }
       metricsSumMap[metricName] = sum;
     }
 
     if ((import.meta as any)?.env?.DEV) {
-      console.debug('[Macro2026] monthIndexes:', monthIndexes);
+      console.debug('[Macro2026] columnIndexes:', columnIndexes);
       console.debug('[Macro2026] metricsSumMap:', metricsSumMap);
     }
     
-    // Mapear métricas pelos nomes normalizados
-    const vendas = metricsSumMap['vendas'] || metricsSumMap['total vendas'] || 0;
-    const leads = metricsSumMap['leads'] || metricsSumMap['lead'] || metricsSumMap['total leads'] || 0;
-    const faturamentoSum = metricsSumMap['faturamento'] || metricsSumMap['receita'] || 0;
+    // Mapear métricas pelos nomes normalizados da planilha LOVABLE_HISTORICO_2026
+    const vendas = metricsSumMap['vendas'] || 0;
+    const leads = metricsSumMap['lead'] || metricsSumMap['leads'] || 0;
+    const mql = metricsSumMap['mql'] || 0;
+    const faturamentoSum = metricsSumMap['faturamento'] || 0;
     const investimentoSum = metricsSumMap['investimento mensal'] || metricsSumMap['investimento'] || 0;
 
     // Para 1 mês: usamos os valores da própria planilha (batem com o reporting dela).
@@ -563,43 +574,64 @@ export async function fetchMacro2026Data(params?: {
     const ticketMedio = isMultiMonth
       ? (vendas > 0 ? faturamentoSum / vendas : 0)
       : (metricsSumMap['ticket medio'] || metricsSumMap['ticketmedio'] || 0);
+    
     const cpa = isMultiMonth
       ? (vendas > 0 ? investimentoSum / vendas : 0)
-      : (metricsSumMap['cpa'] || metricsSumMap['custo por aquisicao'] || 0);
+      : (metricsSumMap['cpa'] || 0);
+    
+    // CAC = CPA + Custo Vendedor (está pré-calculado na planilha)
+    const cac = isMultiMonth
+      ? (() => {
+          // Para multi-mês, calculamos média ponderada do CAC
+          const cacSum = metricsSumMap['cac'] || 0;
+          return cacSum / columnIndexes.length;
+        })()
+      : (metricsSumMap['cac'] || 0);
+    
     const cpl = isMultiMonth
       ? (leads > 0 ? investimentoSum / leads : 0)
-      : (metricsSumMap['cpl'] || metricsSumMap['custo por lead'] || 0);
+      : (metricsSumMap['cpl'] || 0);
+    
+    const cpmql = isMultiMonth
+      ? (mql > 0 ? investimentoSum / mql : 0)
+      : (metricsSumMap['cpmql'] || 0);
+    
     const roas = isMultiMonth
       ? (investimentoSum > 0 ? faturamentoSum / investimentoSum : 0)
       : (metricsSumMap['roas'] || 0);
+    
     const roi = isMultiMonth
       ? (investimentoSum > 0 ? ((faturamentoSum - investimentoSum) / investimentoSum) * 100 : 0)
       : (metricsSumMap['roi'] || 0);
+    
+    // Taxa de conversão Lead > MQL
     const taxaConversao = isMultiMonth
-      ? (leads > 0 ? (vendas / leads) * 100 : 0)
-      : (metricsSumMap['taxa de conversao'] || metricsSumMap['taxa conversao'] || metricsSumMap['conversao'] || 0);
-
-    // Custo por vendedor: quando multi-mês, usamos média simples do(s) mês(es) (a planilha já calcula mês a mês)
-    const custoVendedor = (() => {
-      const sum = metricsSumMap['custo vendedor'] || metricsSumMap['custo por vendedor'] || 0;
-      return isMultiMonth ? sum / monthIndexes.length : sum;
-    })();
+      ? (leads > 0 ? (mql / leads) * 100 : 0)
+      : (metricsSumMap['lead > mql'] || metricsSumMap['taxa de conversao'] || 0);
+    
+    // Taxa de conversão MQL > Venda
+    const taxaConversaoMqlVenda = isMultiMonth
+      ? (mql > 0 ? (vendas / mql) * 100 : 0)
+      : (metricsSumMap['tx conversao mql > venda'] || metricsSumMap['taxa conversao mql venda'] || 0);
     
     return {
       totalVendas: vendas,
       totalLeads: leads,
-      custoVendedor,
+      totalMql: mql,
       faturamento: faturamentoSum,
       ticketMedio,
       investimento: investimentoSum,
       cpa,
+      cac,
       cpl,
+      cpmql,
       roas,
       roi,
       taxaConversao,
+      taxaConversaoMqlVenda,
     };
   } catch (error) {
-    console.error('Error fetching 2026 macro data:', error);
+    console.error('Error fetching LOVABLE_HISTORICO_2026 data:', error);
     throw error;
   }
 }

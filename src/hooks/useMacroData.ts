@@ -19,17 +19,20 @@ export interface MacroMetrics {
   cliques: number;
   receita: number;
   leads: number;
+  mql: number;
   conversoes: number;
   ctr: number;
-  custoVendedor: number;
-  // Novas métricas da planilha 2026
+  // Métricas da planilha LOVABLE_HISTORICO_2026
   faturamento?: number;
   ticketMedio?: number;
   cpa?: number;
+  cac?: number;        // CAC = CPA + Custo Vendedor
   cpl?: number;
+  cpmql?: number;
   roas?: number;
   roi?: number;
-  taxaConversao?: number;
+  taxaConversao?: number;         // Lead > MQL
+  taxaConversaoMqlVenda?: number; // MQL > Venda
 }
 
 // Calculate investment/impressions/clicks from tabela_objetivo (paid media only)
@@ -119,25 +122,28 @@ export function useMacroData(dateRange: DateRange) {
       console.debug('[MacroData] Macro2026Data:', macro2026Data);
     }
     
-    // Volume from 2.DADOS_MENSAL_2026 (dados mensais de 2026)
+    // Volume from LOVABLE_HISTORICO_2026 (dados mensais de 2026)
     return {
       investimento: investmentMetrics.investimento,
       impressoes: investmentMetrics.impressoes,
       cliques: investmentMetrics.cliques,
       ctr: investmentMetrics.ctr,
-      // Volume from planilha 2026 (monthly totals)
+      // Volume from planilha LOVABLE_HISTORICO_2026 (monthly totals)
       leads: macro2026Data.totalLeads,
+      mql: macro2026Data.totalMql,
       conversoes: macro2026Data.totalVendas,
-      receita: macro2026Data.faturamento, // Usar faturamento da planilha 2026
-      custoVendedor: macro2026Data.custoVendedor,
-      // Novas métricas da planilha 2026
+      receita: macro2026Data.faturamento,
+      // Métricas da planilha LOVABLE_HISTORICO_2026
       faturamento: macro2026Data.faturamento,
       ticketMedio: macro2026Data.ticketMedio,
       cpa: macro2026Data.cpa,
+      cac: macro2026Data.cac,
       cpl: macro2026Data.cpl,
+      cpmql: macro2026Data.cpmql,
       roas: macro2026Data.roas,
       roi: macro2026Data.roi,
       taxaConversao: macro2026Data.taxaConversao,
+      taxaConversaoMqlVenda: macro2026Data.taxaConversaoMqlVenda,
     };
   }, [sheetsData, macro2026Data, dateRange]);
 
@@ -149,7 +155,7 @@ export function useMacroData(dateRange: DateRange) {
     const filteredSheets = filterByDateRange(sheetsData.rows, previousPeriod.from, previousPeriod.to);
     const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
 
-    // Note: planilha 2026 não tem dados históricos por período, então não há comparativo de vendas/leads
+    // Note: planilha LOVABLE_HISTORICO_2026 não tem dados históricos por período, então não há comparativo de vendas/leads
     return {
       investimento: investmentMetrics.investimento,
       impressoes: investmentMetrics.impressoes,
@@ -157,9 +163,9 @@ export function useMacroData(dateRange: DateRange) {
       ctr: investmentMetrics.ctr,
       // No historical macro data available for previous period
       leads: 0,
+      mql: 0,
       conversoes: 0,
       receita: 0,
-      custoVendedor: 0,
     };
   }, [sheetsData, previousPeriod]);
 
