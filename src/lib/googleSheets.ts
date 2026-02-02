@@ -6,9 +6,13 @@ const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 const SPREADSHEET_ID_OBJETIVO = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
 const SHEET_NAME_OBJETIVO = 'tabela_objetivo';
 
-// Planilha 2: Dados_macro_vendas (todas as vendas - orgânico + mídia)
+// Planilha 2: Dados_macro_vendas (todas as vendas - orgânico + mídia) - LEGADO
 const SPREADSHEET_ID_MACRO = '1FLAmZ4rL2OmxABfIyiPSl9UTgmsC4zc8m039c175ix4';
 const SHEET_NAME_MACRO = 'Dados_macro_vendas';
+
+// Planilha 3: NOVA - Dados Mensal 2026 (substitui Dados_macro_vendas para 2026)
+const SPREADSHEET_ID_2026 = '1T5PC6l9bK4ZULucGt_DQrNhZHeArFKU4dFQtolePoJA';
+const SHEET_NAME_2026 = '2.DADOS_MENSAL_2026';
 
 export interface SheetsMarketingRow {
   canal: string;
@@ -471,7 +475,108 @@ export async function fetchGoogleSheetsData(): Promise<GoogleSheetsData> {
   }
 }
 
-// Fetch data from Dados_macro_vendas (ALL sales - organic + paid - monthly summary)
+// Interface para dados mensais de 2026
+export interface Macro2026Data {
+  // Métricas principais
+  totalVendas: number;      // Vendas (total do mês)
+  totalLeads: number;       // Leads (total do mês)
+  custoVendedor: number;    // Custo por Vendedor (calculado)
+  // Métricas extras disponíveis na planilha 2026
+  faturamento: number;      // Faturamento
+  ticketMedio: number;      // Ticket Médio
+  investimento: number;     // Investimento Mensal
+  cpa: number;              // CPA
+  cpl: number;              // CPL
+  roas: number;             // ROAS
+  roi: number;              // ROI
+  taxaConversao: number;    // Taxa de Conversão (%)
+}
+
+// Fetch data from 2.DADOS_MENSAL_2026 (nova planilha de referência 2026)
+export async function fetchMacro2026Data(): Promise<Macro2026Data> {
+  // A planilha tem métricas na coluna A e valores mensais nas colunas B-M (Jan-Dez)
+  // Estrutura: Row 1=header, Row 2+ = métricas
+  const range = `${SHEET_NAME_2026}!A:N`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_2026}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=FORMATTED_VALUE&_=${Date.now()}`;
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google Sheets API error (2026):', errorData);
+      throw new Error(`Failed to fetch 2026 data: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const values: string[][] = data.values || [];
+    
+    // Debug log
+    if ((import.meta as any)?.env?.DEV) {
+      console.debug('[Macro2026] Raw values:', values);
+    }
+    
+    // Mapa de métricas: nome_métrica -> valor (para o mês atual)
+    // Mês atual: 0=Jan -> col B (index 1), 1=Fev -> col C (index 2), etc.
+    const now = new Date();
+    const currentMonthIndex = now.getMonth() + 1; // 1=Jan, 2=Fev, etc (colunas B=1, C=2...)
+    
+    const metricsMap: Record<string, number> = {};
+    
+    for (const row of values) {
+      const metricName = normalizeHeader(row[0] || '');
+      const rawValue = row[currentMonthIndex];
+      const value = parseNumber(rawValue);
+      if (metricName) {
+        metricsMap[metricName] = value;
+      }
+    }
+    
+    if ((import.meta as any)?.env?.DEV) {
+      console.debug('[Macro2026] metricsMap for month', currentMonthIndex, ':', metricsMap);
+    }
+    
+    // Mapear métricas pelos nomes normalizados
+    const vendas = metricsMap['vendas'] || metricsMap['total vendas'] || 0;
+    const leads = metricsMap['leads'] || metricsMap['lead'] || metricsMap['total leads'] || 0;
+    const faturamento = metricsMap['faturamento'] || metricsMap['receita'] || 0;
+    const ticketMedio = metricsMap['ticket medio'] || metricsMap['ticketmedio'] || 0;
+    const investimento = metricsMap['investimento mensal'] || metricsMap['investimento'] || 0;
+    const cpa = metricsMap['cpa'] || metricsMap['custo por aquisicao'] || 0;
+    const cpl = metricsMap['cpl'] || metricsMap['custo por lead'] || 0;
+    const roas = metricsMap['roas'] || 0;
+    const roi = metricsMap['roi'] || 0;
+    const taxaConversao = metricsMap['taxa de conversao'] || metricsMap['taxa conversao'] || metricsMap['conversao'] || 0;
+    
+    // Calcular custo por vendedor se não disponível (usando lógica padrão)
+    const custoVendedor = metricsMap['custo vendedor'] || metricsMap['custo por vendedor'] || 0;
+    
+    return {
+      totalVendas: vendas,
+      totalLeads: leads,
+      custoVendedor,
+      faturamento,
+      ticketMedio,
+      investimento,
+      cpa,
+      cpl,
+      roas,
+      roi,
+      taxaConversao,
+    };
+  } catch (error) {
+    console.error('Error fetching 2026 macro data:', error);
+    throw error;
+  }
+}
+
+// LEGADO: Fetch data from Dados_macro_vendas (ALL sales - organic + paid - monthly summary)
 export async function fetchMacroSheetsData(): Promise<MacroSheetsData> {
   const range = `${SHEET_NAME_MACRO}!A:C`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_MACRO}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=UNFORMATTED_VALUE&_=${Date.now()}`;
