@@ -55,8 +55,12 @@ export function useMacroData(dateRange: DateRange) {
   
   // Data from 2.DADOS_MENSAL_2026 (nova planilha de referência)
   const { data: macro2026Data, isLoading: isLoadingMacro, error: macroError } = useQuery({
-    queryKey: ['macro-2026-data'],
-    queryFn: fetchMacro2026Data,
+    queryKey: [
+      'macro-2026-data',
+      dateRange.from?.getTime() ?? null,
+      dateRange.to?.getTime() ?? null,
+    ],
+    queryFn: () => fetchMacro2026Data({ from: dateRange.from, to: dateRange.to }),
     staleTime: 0,
     gcTime: 2 * 60 * 1000,
     refetchOnMount: 'always',
