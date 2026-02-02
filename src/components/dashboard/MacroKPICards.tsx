@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { MacroMetrics } from '@/hooks/useMacroData';
-import { TICKET_MEDIO } from '@/lib/metrics';
 import { formatCurrency, formatNumber, formatPercent, formatROAS, formatVariation } from '@/lib/formatters';
 import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -199,32 +198,21 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   // Use currentMetrics from Sheets data
   const vendas = currentMetrics?.conversoes || 0;
   const leads = currentMetrics?.leads || 0;
+  const mql = currentMetrics?.mql || 0;
   const investimento = currentMetrics?.investimento || 0;
-  const custoVendedor = currentMetrics?.custoVendedor || 0;
   
-  // Receita calculada: Vendas × Ticket Médio
-  const receita = vendas * TICKET_MEDIO;
+  // Usar métricas diretamente da planilha LOVABLE_HISTORICO_2026
+  const receita = currentMetrics?.faturamento || 0;
+  const cpa = currentMetrics?.cpa || 0;
+  const cac = currentMetrics?.cac || 0; // CAC já calculado na planilha (CPA + Custo Vendedor)
+  const roas = currentMetrics?.roas || 0;
+  const taxaConversao = currentMetrics?.taxaConversao || 0; // Lead > MQL
+  const taxaConversaoMqlVenda = currentMetrics?.taxaConversaoMqlVenda || 0; // MQL > Venda
 
-  const cpa = vendas > 0 ? investimento / vendas : 0;
-  const roas = investimento > 0 ? receita / investimento : 0;
-  const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
-  
-  // CAC Projetado = Custo do Vendedor + CPA
-  const cacProjetado = custoVendedor + cpa;
-
-  // Calculate CPA and ROAS variation
-  const prevVendas = previousMetrics?.conversoes || 0;
-  const prevInvestimento = previousMetrics?.investimento || 0;
-  const prevReceita = prevVendas * TICKET_MEDIO;
-  const prevCpa = prevVendas > 0 ? prevInvestimento / prevVendas : 0;
-  const prevRoas = prevInvestimento > 0 ? prevReceita / prevInvestimento : 0;
-  const prevTaxaConversao = (previousMetrics?.leads || 0) > 0 
-    ? (prevVendas / (previousMetrics?.leads || 1)) * 100 
-    : 0;
-
-  const cpaVariation = previousMetrics ? calculateVariation(cpa, prevCpa) : undefined;
-  const roasVariation = previousMetrics ? calculateVariation(roas, prevRoas) : undefined;
-  const taxaVariation = previousMetrics ? calculateVariation(taxaConversao, prevTaxaConversao) : undefined;
+  // Não calculamos variações para a planilha LOVABLE_HISTORICO_2026 (não há dados de período anterior)
+  const cpaVariation = undefined;
+  const roasVariation = undefined;
+  const taxaVariation = undefined;
 
   if (isLoading) {
     return (
@@ -274,10 +262,10 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           index={2}
         />
         <MainKPICard
-          title="CAC Projetado"
-          value={formatCurrency(cacProjetado)}
+          title="CAC"
+          value={formatCurrency(cac)}
           colorType="cpa"
-          rawValue={cacProjetado}
+          rawValue={cac}
           icon={<Wallet className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={3}
         />
@@ -291,7 +279,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           index={4}
         />
         <MainKPICard
-          title="Conversão Lead→Venda"
+          title="Lead→MQL"
           value={formatPercent(taxaConversao)}
           variation={taxaVariation}
           colorType="conversion"
