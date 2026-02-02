@@ -489,7 +489,11 @@ export interface Macro2026Data {
 }
 
 // Fetch data from 2.DADOS_MENSAL_2026 (nova planilha de referência 2026)
-export async function fetchMacro2026Data(): Promise<Macro2026Data> {
+// IMPORTANT: usa o período selecionado no filtro (dateRange) para escolher o(s) mês(es) a consolidar.
+export async function fetchMacro2026Data(params?: {
+  from?: Date;
+  to?: Date;
+}): Promise<Macro2026Data> {
   // A planilha tem métricas na coluna A e valores mensais nas colunas B-M (Jan-Dez)
   // Estrutura: Row 1=header, Row 2+ = métricas
   const range = `${SHEET_NAME_2026}!A:N`;
@@ -518,48 +522,76 @@ export async function fetchMacro2026Data(): Promise<Macro2026Data> {
       console.debug('[Macro2026] Raw values:', values);
     }
     
-    // Mapa de métricas: nome_métrica -> valor (para o mês atual)
-    // Mês atual: 0=Jan -> col B (index 1), 1=Fev -> col C (index 2), etc.
-    const now = new Date();
-    const currentMonthIndex = now.getMonth() + 1; // 1=Jan, 2=Fev, etc (colunas B=1, C=2...)
-    
-    const metricsMap: Record<string, number> = {};
-    
+    // Mapa de métricas: nome_métrica -> valor consolidado do(s) mês(es) selecionados.
+    // Colunas B-M (index 1-12) = Jan-Dez.
+    const startDate = params?.from ?? new Date();
+    const endDate = params?.to ?? params?.from ?? startDate;
+
+    const startMonth = Math.min(12, Math.max(1, startDate.getMonth() + 1));
+    const endMonth = Math.min(12, Math.max(1, endDate.getMonth() + 1));
+    const monthStart = Math.min(startMonth, endMonth);
+    const monthEnd = Math.max(startMonth, endMonth);
+    const monthIndexes = Array.from({ length: monthEnd - monthStart + 1 }, (_, i) => monthStart + i);
+    const isMultiMonth = monthIndexes.length > 1;
+
+    const metricsSumMap: Record<string, number> = {};
+
     for (const row of values) {
       const metricName = normalizeHeader(row[0] || '');
-      const rawValue = row[currentMonthIndex];
-      const value = parseNumber(rawValue);
-      if (metricName) {
-        metricsMap[metricName] = value;
+      if (!metricName) continue;
+
+      let sum = 0;
+      for (const monthIndex of monthIndexes) {
+        sum += parseNumber(row[monthIndex]);
       }
+      metricsSumMap[metricName] = sum;
     }
-    
+
     if ((import.meta as any)?.env?.DEV) {
-      console.debug('[Macro2026] metricsMap for month', currentMonthIndex, ':', metricsMap);
+      console.debug('[Macro2026] monthIndexes:', monthIndexes);
+      console.debug('[Macro2026] metricsSumMap:', metricsSumMap);
     }
     
     // Mapear métricas pelos nomes normalizados
-    const vendas = metricsMap['vendas'] || metricsMap['total vendas'] || 0;
-    const leads = metricsMap['leads'] || metricsMap['lead'] || metricsMap['total leads'] || 0;
-    const faturamento = metricsMap['faturamento'] || metricsMap['receita'] || 0;
-    const ticketMedio = metricsMap['ticket medio'] || metricsMap['ticketmedio'] || 0;
-    const investimento = metricsMap['investimento mensal'] || metricsMap['investimento'] || 0;
-    const cpa = metricsMap['cpa'] || metricsMap['custo por aquisicao'] || 0;
-    const cpl = metricsMap['cpl'] || metricsMap['custo por lead'] || 0;
-    const roas = metricsMap['roas'] || 0;
-    const roi = metricsMap['roi'] || 0;
-    const taxaConversao = metricsMap['taxa de conversao'] || metricsMap['taxa conversao'] || metricsMap['conversao'] || 0;
-    
-    // Calcular custo por vendedor se não disponível (usando lógica padrão)
-    const custoVendedor = metricsMap['custo vendedor'] || metricsMap['custo por vendedor'] || 0;
+    const vendas = metricsSumMap['vendas'] || metricsSumMap['total vendas'] || 0;
+    const leads = metricsSumMap['leads'] || metricsSumMap['lead'] || metricsSumMap['total leads'] || 0;
+    const faturamentoSum = metricsSumMap['faturamento'] || metricsSumMap['receita'] || 0;
+    const investimentoSum = metricsSumMap['investimento mensal'] || metricsSumMap['investimento'] || 0;
+
+    // Para 1 mês: usamos os valores da própria planilha (batem com o reporting dela).
+    // Para múltiplos meses: recalculamos métricas derivadas de forma consistente a partir dos totais.
+    const ticketMedio = isMultiMonth
+      ? (vendas > 0 ? faturamentoSum / vendas : 0)
+      : (metricsSumMap['ticket medio'] || metricsSumMap['ticketmedio'] || 0);
+    const cpa = isMultiMonth
+      ? (vendas > 0 ? investimentoSum / vendas : 0)
+      : (metricsSumMap['cpa'] || metricsSumMap['custo por aquisicao'] || 0);
+    const cpl = isMultiMonth
+      ? (leads > 0 ? investimentoSum / leads : 0)
+      : (metricsSumMap['cpl'] || metricsSumMap['custo por lead'] || 0);
+    const roas = isMultiMonth
+      ? (investimentoSum > 0 ? faturamentoSum / investimentoSum : 0)
+      : (metricsSumMap['roas'] || 0);
+    const roi = isMultiMonth
+      ? (investimentoSum > 0 ? ((faturamentoSum - investimentoSum) / investimentoSum) * 100 : 0)
+      : (metricsSumMap['roi'] || 0);
+    const taxaConversao = isMultiMonth
+      ? (leads > 0 ? (vendas / leads) * 100 : 0)
+      : (metricsSumMap['taxa de conversao'] || metricsSumMap['taxa conversao'] || metricsSumMap['conversao'] || 0);
+
+    // Custo por vendedor: quando multi-mês, usamos média simples do(s) mês(es) (a planilha já calcula mês a mês)
+    const custoVendedor = (() => {
+      const sum = metricsSumMap['custo vendedor'] || metricsSumMap['custo por vendedor'] || 0;
+      return isMultiMonth ? sum / monthIndexes.length : sum;
+    })();
     
     return {
       totalVendas: vendas,
       totalLeads: leads,
       custoVendedor,
-      faturamento,
+      faturamento: faturamentoSum,
       ticketMedio,
-      investimento,
+      investimento: investimentoSum,
       cpa,
       cpl,
       roas,

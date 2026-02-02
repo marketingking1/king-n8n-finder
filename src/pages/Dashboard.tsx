@@ -67,7 +67,10 @@ export default function Dashboard() {
   // Handler to refresh all data
   const handleRefreshData = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['google-sheets-data'] });
+    // Legacy key (kept to avoid breaking any older cache usage)
     queryClient.invalidateQueries({ queryKey: ['macro-sheets-data'] });
+    // Current Macro (2026) key
+    queryClient.invalidateQueries({ queryKey: ['macro-2026-data'] });
     queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
     queryClient.invalidateQueries({ queryKey: ['leads-compradores-data'] });
     toast({
