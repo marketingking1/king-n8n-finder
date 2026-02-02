@@ -6,9 +6,9 @@ const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
 const SPREADSHEET_ID_OBJETIVO = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
 const SHEET_NAME_OBJETIVO = 'tabela_objetivo';
 
-// Planilha 2: Dados Mensal 2026 (fonte principal para métricas Macro)
-const SPREADSHEET_ID_2026 = '1T5PC6l9bK4ZULucGt_DQrNhZHeArFKU4dFQtolePoJA';
-const SHEET_NAME_2026 = '2.DADOS_MENSAL_2026';
+// Planilha 2: LOVABLE_HISTORICO_2026 (fonte principal para métricas Macro 2026)
+const SPREADSHEET_ID_2026 = '1qS646MJtNvxmMDRMTrFQqX6CKtPJRItbhd0t6stb1HM';
+const SHEET_NAME_2026 = 'LOVABLE_HISTORICO_2026';
 
 export interface SheetsMarketingRow {
   canal: string;
