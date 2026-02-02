@@ -120,11 +120,12 @@ export async function fetchLTVData(): Promise<LTVRecord[]> {
     // Header esperado (9 colunas):
     // data_da_matricula_edit, data_cancelamento, status, campanha, tag_tratada, 
     // valor_mensalidade, tempo_vida_dias, tempo_vida_meses, receita_total
+    // Bug 1: Aceitar linhas com 6+ colunas (G/H/I podem estar vazias e serem cortadas pela API)
     const records: LTVRecord[] = [];
     
     for (let i = 1; i < values.length; i++) {
       const row = values[i];
-      if (!row || row.length < 9) continue;
+      if (!row || row.length < 6) continue; // Aceitar linhas com pelo menos 6 colunas (A-F)
       
       const serialMatricula = typeof row[0] === 'number' ? row[0] : parseFloat(row[0]);
       const serialCancelamento = typeof row[1] === 'number' ? row[1] : parseFloat(row[1]);
@@ -132,9 +133,6 @@ export async function fetchLTVData(): Promise<LTVRecord[]> {
       const campanha = String(row[3] || '');
       const canal = String(row[4] || '(sem canal)').trim();
       const valorMensalidade = parseDecimal(row[5]);
-      const tempoVidaDias = parseInt2(row[6]);
-      const tempoVidaMeses = parseInt2(row[7]);
-      const receitaTotal = parseDecimal(row[8]);
       
       const dataMatricula = excelSerialToDate(serialMatricula);
       if (!dataMatricula) continue;
@@ -142,6 +140,27 @@ export async function fetchLTVData(): Promise<LTVRecord[]> {
       const dataCancelamento = excelSerialToDate(serialCancelamento);
       const statusOriginal = normalizeStatus(statusRaw);
       const statusCategory = getStatusCategory(statusRaw);
+      
+      // Colunas G/H/I podem não existir ou estar vazias — calcular se ausentes
+      let tempoVidaDias: number;
+      let tempoVidaMeses: number;
+      let receitaTotal: number;
+      
+      const hasLifetimeData = row.length >= 9 && row[6] !== '' && row[6] !== null && row[6] !== undefined;
+      
+      if (hasLifetimeData) {
+        // Usar valores pré-calculados da planilha
+        tempoVidaDias = parseInt2(row[6]);
+        tempoVidaMeses = parseInt2(row[7]);
+        receitaTotal = parseDecimal(row[8]);
+      } else {
+        // Calcular a partir dos dados disponíveis
+        const dataFim = dataCancelamento || REFERENCE_DATE;
+        const diffTime = dataFim.getTime() - dataMatricula.getTime();
+        tempoVidaDias = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+        tempoVidaMeses = Math.max(0, Math.floor(tempoVidaDias / 30));
+        receitaTotal = valorMensalidade * tempoVidaMeses;
+      }
       
       records.push({
         dataMatricula,
