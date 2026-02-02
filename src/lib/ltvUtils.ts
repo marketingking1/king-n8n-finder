@@ -44,11 +44,14 @@ export const STATUS_COLORS: Record<LTVStatusOriginal, string> = {
   'INATIVO': 'hsl(215, 20%, 45%)',         // cinza
 };
 
-// Converter serial Excel para Date
+// Converter serial Excel para Date (Bug 5: normalizar timezone)
 export function excelSerialToDate(serial: number): Date | null {
   if (!serial || !Number.isFinite(serial) || serial < 1) return null;
-  const date = new Date((serial - 25569) * 86400 * 1000);
-  if (!isValid(date)) return null;
+  const utcDate = new Date((serial - 25569) * 86400 * 1000);
+  if (!isValid(utcDate)) return null;
+  
+  // Criar data em timezone local para consistência com REFERENCE_DATE
+  const date = new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
   
   // Filtrar datas fora do range válido (2015-2026)
   const year = date.getFullYear();
@@ -191,6 +194,8 @@ export function filterLTVRecords(
 }
 
 // Calcular métricas principais (usando valores pré-calculados)
+// Bug 4: filtrar registros incompletos antes de calcular médias
+// Bug 6: usar >= em vez de > para retenção mês 3
 export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
   if (records.length === 0) {
     return {
@@ -210,24 +215,35 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
   const cancelados = records.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
   const pausados = records.filter(r => r.statusCategory === 'pausado');
   
-  // LTV Médio: média(receita_total) - valor pré-calculado
-  const ltvMedio = records.reduce((sum, r) => sum + r.receitaTotal, 0) / records.length;
+  // Bug 4: Filtrar registros com dados completos para cálculo de médias
+  const recordsComLTV = records.filter(r => r.receitaTotal > 0);
+  const recordsComTicket = records.filter(r => r.valorMensalidade > 0);
+  const recordsComPermanencia = records.filter(r => r.tempoVidaMeses > 0);
   
-  // Ticket médio: média(valor_mensalidade)
-  const ticketMedio = records.reduce((sum, r) => sum + r.valorMensalidade, 0) / records.length;
+  // LTV Médio: média(receita_total) - apenas registros com LTV > 0
+  const ltvMedio = recordsComLTV.length > 0
+    ? recordsComLTV.reduce((sum, r) => sum + r.receitaTotal, 0) / recordsComLTV.length
+    : 0;
   
-  // Permanência média: média(tempo_vida_meses)
-  const permanenciaMedia = records.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / records.length;
+  // Ticket médio: média(valor_mensalidade) - apenas registros com ticket > 0
+  const ticketMedio = recordsComTicket.length > 0
+    ? recordsComTicket.reduce((sum, r) => sum + r.valorMensalidade, 0) / recordsComTicket.length
+    : 0;
+  
+  // Permanência média: média(tempo_vida_meses) - apenas registros com permanência > 0
+  const permanenciaMedia = recordsComPermanencia.length > 0
+    ? recordsComPermanencia.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / recordsComPermanencia.length
+    : 0;
   
   // Taxa de churn: (DESISTENCIA + INADIMPLENTE + INATIVO) / total × 100
   const taxaChurn = (cancelados.length / records.length) * 100;
   
-  // Retenção mês 3: alunos com tempo_vida_meses > 3 / elegíveis × 100
+  // Bug 6: Retenção mês 3: alunos com tempo_vida_meses >= 3 / elegíveis × 100
   const tresMesesAtras = new Date(REFERENCE_DATE);
   tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
   
   const elegiveisM3 = records.filter(r => r.dataMatricula <= tresMesesAtras);
-  const sobreviventesM3 = elegiveisM3.filter(r => r.tempoVidaMeses > 3);
+  const sobreviventesM3 = elegiveisM3.filter(r => r.tempoVidaMeses >= 3);
   
   const retencaoMes3 = elegiveisM3.length > 0
     ? (sobreviventesM3.length / elegiveisM3.length) * 100
@@ -247,6 +263,7 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
 }
 
 // Curva de sobrevivência (usando tempo_vida_meses pré-calculado)
+// Bug 6: usar >= em vez de > para não subcontar alunos na borda
 export function calculateSurvivalCurve(records: LTVRecord[]): SurvivalPoint[] {
   const points: SurvivalPoint[] = [];
   
@@ -262,8 +279,8 @@ export function calculateSurvivalCurve(records: LTVRecord[]): SurvivalPoint[] {
       continue;
     }
     
-    // Sobreviventes: alunos com tempo_vida_meses > M
-    const sobreviventes = elegiveis.filter(r => r.tempoVidaMeses > mes);
+    // Bug 6: Sobreviventes: alunos com tempo_vida_meses >= M
+    const sobreviventes = elegiveis.filter(r => r.tempoVidaMeses >= mes);
     
     const taxa = (sobreviventes.length / elegiveis.length) * 100;
     
@@ -279,6 +296,7 @@ export function calculateSurvivalCurve(records: LTVRecord[]): SurvivalPoint[] {
 }
 
 // LTV por canal (usando receita_total pré-calculado)
+// Bug 4: filtrar registros incompletos antes de calcular médias
 export function calculateLTVByChannel(records: LTVRecord[]): ChannelLTVData[] {
   const channelMap: Record<string, LTVRecord[]> = {};
   
@@ -298,10 +316,20 @@ export function calculateLTVByChannel(records: LTVRecord[]): ChannelLTVData[] {
     const cancelados = channelRecords.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
     const ativos = channelRecords.filter(r => r.statusOriginal === 'ATIVO');
     
-    // Usar valores pré-calculados
-    const ticketMedio = channelRecords.reduce((sum, r) => sum + r.valorMensalidade, 0) / channelRecords.length;
-    const permanenciaMedia = channelRecords.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / channelRecords.length;
-    const ltv = channelRecords.reduce((sum, r) => sum + r.receitaTotal, 0) / channelRecords.length;
+    // Bug 4: Filtrar registros com dados completos para cálculo de médias
+    const recordsComTicket = channelRecords.filter(r => r.valorMensalidade > 0);
+    const recordsComPermanencia = channelRecords.filter(r => r.tempoVidaMeses > 0);
+    const recordsComLTV = channelRecords.filter(r => r.receitaTotal > 0);
+    
+    const ticketMedio = recordsComTicket.length > 0
+      ? recordsComTicket.reduce((sum, r) => sum + r.valorMensalidade, 0) / recordsComTicket.length
+      : 0;
+    const permanenciaMedia = recordsComPermanencia.length > 0
+      ? recordsComPermanencia.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / recordsComPermanencia.length
+      : 0;
+    const ltv = recordsComLTV.length > 0
+      ? recordsComLTV.reduce((sum, r) => sum + r.receitaTotal, 0) / recordsComLTV.length
+      : 0;
     const churnPercent = (cancelados.length / channelRecords.length) * 100;
     
     result.push({
@@ -343,13 +371,14 @@ export function calculateMonthlyChurn(records: LTVRecord[]): MonthlyChurnPoint[]
 }
 
 // Distribuição de ticket
+// Bug 3: corrigir faixas para incluir valores decimais (usar < em vez de <=)
 export function calculateTicketDistribution(records: LTVRecord[]): TicketDistribution[] {
   const faixas = [
-    { label: 'R$ 0-100', min: 0, max: 100 },
-    { label: 'R$ 101-200', min: 101, max: 200 },
-    { label: 'R$ 201-300', min: 201, max: 300 },
-    { label: 'R$ 301-400', min: 301, max: 400 },
-    { label: 'R$ 401-500', min: 401, max: 500 },
+    { label: 'R$ 0-100', min: 0, max: 101 },
+    { label: 'R$ 101-200', min: 101, max: 201 },
+    { label: 'R$ 201-300', min: 201, max: 301 },
+    { label: 'R$ 301-400', min: 301, max: 401 },
+    { label: 'R$ 401-500', min: 401, max: 501 },
     { label: 'R$ 500+', min: 501, max: Infinity },
   ];
   
@@ -362,7 +391,8 @@ export function calculateTicketDistribution(records: LTVRecord[]): TicketDistrib
   for (const record of records) {
     const valor = record.valorMensalidade;
     for (let i = 0; i < faixas.length; i++) {
-      if (valor >= faixas[i].min && valor <= faixas[i].max) {
+      // Bug 3: usar < no max para incluir valores decimais
+      if (valor >= faixas[i].min && valor < faixas[i].max) {
         distribution[i].quantidade++;
         break;
       }
@@ -411,6 +441,7 @@ export function calculateStatusBreakdown(records: LTVRecord[]): StatusBreakdown[
 }
 
 // Tabela de cohort (usando valores pré-calculados)
+// Bug 4: filtrar registros incompletos antes de calcular médias
 export function calculateCohortData(records: LTVRecord[]): CohortData[] {
   const cohortMap: Record<string, LTVRecord[]> = {};
   
@@ -429,10 +460,20 @@ export function calculateCohortData(records: LTVRecord[]): CohortData[] {
     const cancelados = cohortRecords.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
     const ativos = cohortRecords.filter(r => r.statusOriginal === 'ATIVO');
     
-    // Usar valores pré-calculados
-    const ticketMedio = cohortRecords.reduce((sum, r) => sum + r.valorMensalidade, 0) / cohortRecords.length;
-    const permanenciaMedia = cohortRecords.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / cohortRecords.length;
-    const ltv = cohortRecords.reduce((sum, r) => sum + r.receitaTotal, 0) / cohortRecords.length;
+    // Bug 4: Filtrar registros com dados completos para cálculo de médias
+    const recordsComTicket = cohortRecords.filter(r => r.valorMensalidade > 0);
+    const recordsComPermanencia = cohortRecords.filter(r => r.tempoVidaMeses > 0);
+    const recordsComLTV = cohortRecords.filter(r => r.receitaTotal > 0);
+    
+    const ticketMedio = recordsComTicket.length > 0
+      ? recordsComTicket.reduce((sum, r) => sum + r.valorMensalidade, 0) / recordsComTicket.length
+      : 0;
+    const permanenciaMedia = recordsComPermanencia.length > 0
+      ? recordsComPermanencia.reduce((sum, r) => sum + r.tempoVidaMeses, 0) / recordsComPermanencia.length
+      : 0;
+    const ltv = recordsComLTV.length > 0
+      ? recordsComLTV.reduce((sum, r) => sum + r.receitaTotal, 0) / recordsComLTV.length
+      : 0;
     
     const taxaChurn = (cancelados.length / cohortRecords.length) * 100;
     const taxaRetencao = 100 - taxaChurn;
