@@ -8,13 +8,61 @@ const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY || '';
 const SPREADSHEET_ID_CREATIVES = '1ZSG6Mlr-20jnVX5Ap5B_hqZlvDdfyMm4BXVOf3G4SrU';
 const SHEET_NAME_CREATIVES = 'dados_video_consolidados';
 
-// Bug 3: Converter serial Excel para Date usando UTC
+// Parse resiliente da coluna de data:
+// - pode vir como serial (ex: 46044)
+// - pode vir como string formatada (ex: "01/02/2026") por causa do valueRenderOption=FORMATTED_VALUE
+const excelSerialFromCell = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.floor(value);
+
+  const raw = String(value ?? '').trim();
+  if (!raw) return 0;
+
+  // 1) número como string (aceita "," ou ".")
+  if (/^\d+(?:[.,]\d+)?$/.test(raw)) {
+    const num = Number(raw.replace(',', '.'));
+    return Number.isFinite(num) ? Math.floor(num) : 0;
+  }
+
+  // 2) dd/MM/yyyy (pt-BR) ou dd-MM-yyyy
+  const br = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (br) {
+    const day = Number(br[1]);
+    const month = Number(br[2]);
+    const year = Number(br[3]);
+    const d = new Date(year, month - 1, day);
+    if (isValid(d)) {
+      const utcMidnight = Date.UTC(year, month - 1, day);
+      return Math.floor(utcMidnight / 86400000) + 25569;
+    }
+  }
+
+  // 3) yyyy-MM-dd
+  const iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    const year = Number(iso[1]);
+    const month = Number(iso[2]);
+    const day = Number(iso[3]);
+    const d = new Date(year, month - 1, day);
+    if (isValid(d)) {
+      const utcMidnight = Date.UTC(year, month - 1, day);
+      return Math.floor(utcMidnight / 86400000) + 25569;
+    }
+  }
+
+  // fallback (evita NaN), mas não é o caminho esperado
+  return parseInt(raw, 10) || 0;
+};
+
+// Converter serial Excel para Date (normalizado para meia-noite no timezone local)
 export const excelSerialToDate = (serial: number): Date => {
-  const utcDays = Math.floor(serial - 25569); // 25569 = dias entre 30/12/1899 e 01/01/1970
-  const date = new Date(0);
-  date.setUTCDate(date.getUTCDate() + utcDays);
-  date.setUTCHours(0, 0, 0, 0);
-  return date;
+  const s = Math.floor(serial);
+  if (!Number.isFinite(s) || s < 1) return new Date(NaN);
+
+  const utcDate = new Date((s - 25569) * 86400 * 1000);
+  if (!isValid(utcDate)) return new Date(NaN);
+
+  // Converte para "data local" (00:00 local) evitando shift de 1 dia em UTC-3
+  return new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
 };
 
 // Bug 1: Simplified parsing for FORMATTED_VALUE (always strings)
@@ -47,7 +95,7 @@ export const safeDivide = (a: number, b: number, fallback: number = 0): number =
 
 // Converter row da planilha para interface tipada
 const parseSheetRow = (row: (string | number | null)[]): VideoCreativeRow => ({
-  dataEdit: parseInt(String(row[0])) || 0,
+  dataEdit: excelSerialFromCell(row[0]),
   chaveDadosEdit: String(row[1] || ''),
   campanha: String(row[2] || ''),
   ads: String(row[3] || ''),
@@ -224,7 +272,7 @@ export async function fetchCreativeData(): Promise<VideoCreativeRow[]> {
     // Bug 4: Skip header row and filter valid rows with proper validation
     const rows = values.slice(1)
       .filter(row => {
-        const dataEdit = parseInt(String(row[0]));
+        const dataEdit = excelSerialFromCell(row[0]);
         const ads = row[3];
         const impressions = parseInt(String(row[12]));
         return dataEdit > 0 && ads && impressions > 0;
@@ -273,6 +321,7 @@ export function filterCreativesByDateRange(
     if (row.dataEdit <= 0) return false;
 
     const rowDate = excelSerialToDate(row.dataEdit);
+    if (!isValid(rowDate)) return false;
 
     if (from) {
       const fromStart = new Date(from);
