@@ -9,6 +9,7 @@ const SHEET_NAME_OBJETIVO = 'tabela_objetivo';
 // Planilha 2: LOVABLE_HISTORICO_2026 (fonte principal para métricas Macro 2026)
 const SPREADSHEET_ID_2026 = '1qS646MJtNvxmMDRMTrFQqX6CKtPJRItbhd0t6stb1HM';
 const SHEET_NAME_2026 = 'LOVABLE_HISTORICO_2026';
+const SHEET_NAME_CUSTO_VENDAS = 'CUSTO_VENDAS';
 
 export interface SheetsMarketingRow {
   canal: string;
@@ -492,6 +493,93 @@ export interface Macro2026Data {
   taxaConversaoMqlVenda: number; // Taxa de Conversão MQL > Venda (%)
 }
 
+// Fetch Custo Vendedor from CUSTO_VENDAS tab
+// Estrutura: Coluna A = métrica, Colunas seguintes = meses (Jan-Dez)
+async function fetchCustoVendedor(params?: {
+  from?: Date;
+  to?: Date;
+}): Promise<number> {
+  const range = `${SHEET_NAME_CUSTO_VENDAS}!A:O`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_2026}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=FORMATTED_VALUE&_=${Date.now()}`;
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error('Google Sheets API error (CUSTO_VENDAS):', response.status);
+      return 0;
+    }
+
+    const data = await response.json();
+    const values: string[][] = data.values || [];
+    
+    console.debug('[CUSTO_VENDAS] Raw data rows:', values.length);
+    console.debug('[CUSTO_VENDAS] First 5 rows:', values.slice(0, 5));
+    
+    // Detectar coluna de Janeiro
+    let januaryColumnIndex = 1; // Default: coluna B (índice 1)
+    
+    if (values.length > 0) {
+      const headerRow = values[0];
+      for (let i = 0; i < headerRow.length; i++) {
+        const header = normalizeHeader(headerRow[i]);
+        if (header === 'jan' || header === 'janeiro' || header.includes('jan')) {
+          januaryColumnIndex = i;
+          console.debug('[CUSTO_VENDAS] Found January at column index:', i);
+          break;
+        }
+      }
+    }
+    
+    const MONTH_COLUMN_OFFSET = januaryColumnIndex - 1;
+    
+    const startDate = params?.from ?? new Date();
+    const endDate = params?.to ?? params?.from ?? startDate;
+    const startMonth = Math.min(12, Math.max(1, startDate.getMonth() + 1));
+    const endMonth = Math.min(12, Math.max(1, endDate.getMonth() + 1));
+    const monthStart = Math.min(startMonth, endMonth);
+    const monthEnd = Math.max(startMonth, endMonth);
+    
+    const columnIndexes = Array.from(
+      { length: monthEnd - monthStart + 1 }, 
+      (_, i) => monthStart + i + MONTH_COLUMN_OFFSET
+    );
+    
+    console.debug('[CUSTO_VENDAS] Column indexes for months:', columnIndexes);
+    
+    // Procurar linha com "Custo Vendedor" ou similar
+    let custoVendedorSum = 0;
+    
+    for (const row of values) {
+      const metricName = normalizeHeader(row[0] || '');
+      
+      // Procurar por variações do nome
+      if (metricName.includes('custo') && (metricName.includes('vendedor') || metricName.includes('venda'))) {
+        for (const colIndex of columnIndexes) {
+          const cellValue = row[colIndex];
+          const parsed = parseNumber(cellValue);
+          custoVendedorSum += parsed;
+          console.debug(`[CUSTO_VENDAS] ${metricName} col[${colIndex}]:`, cellValue, '-> parsed:', parsed);
+        }
+        break; // Encontrou a linha, pode sair
+      }
+    }
+    
+    console.debug('[CUSTO_VENDAS] Total Custo Vendedor:', custoVendedorSum);
+    return custoVendedorSum;
+    
+  } catch (error) {
+    console.error('Error fetching CUSTO_VENDAS:', error);
+    return 0;
+  }
+}
+
 // Fetch data from LOVABLE_HISTORICO_2026 (planilha de referência 2026)
 // IMPORTANT: usa o período selecionado no filtro (dateRange) para escolher o(s) mês(es) a consolidar.
 // Estrutura REAL da planilha: Coluna A = nome da métrica, Colunas B e C são vazias/labels
@@ -599,8 +687,8 @@ export async function fetchMacro2026Data(params?: {
     const faturamentoSum = metricsSumMap['faturamento'] || 0;
     const investimentoSum = metricsSumMap['investimento mensal'] || metricsSumMap['investimento'] || 0;
     
-    // Buscar Custo Vendedor da planilha (pode estar como "custo vendedor", "custo_vendedor", etc.)
-    const custoVendedorSum = metricsSumMap['custo vendedor'] || metricsSumMap['custovendedor'] || metricsSumMap['custo_vendedor'] || 0;
+    // Buscar Custo Vendedor da aba CUSTO_VENDAS
+    const custoVendedorSum = await fetchCustoVendedor(params);
 
     console.debug('[Macro2026] Parsed volumes:', { vendas, leads, mql, faturamentoSum, investimentoSum, custoVendedorSum });
 
