@@ -493,7 +493,7 @@ export interface Macro2026Data {
 
 // Fetch data from LOVABLE_HISTORICO_2026 (planilha de referência 2026)
 // IMPORTANT: usa o período selecionado no filtro (dateRange) para escolher o(s) mês(es) a consolidar.
-// Estrutura da planilha: Coluna A = nome da métrica, Colunas D-O (índices 3-14) = Jan-Dez
+// Estrutura da planilha: Coluna A = nome da métrica, Colunas B-M (índices 1-12) = Jan-Dez
 export async function fetchMacro2026Data(params?: {
   from?: Date;
   to?: Date;
@@ -527,8 +527,9 @@ export async function fetchMacro2026Data(params?: {
     }
     
     // Mapa de métricas: nome_métrica -> valor consolidado do(s) mês(es) selecionados.
-    // Colunas D-O (index 3-14) = Jan-Dez. Offset de +2 em relação ao mês (Jan=1 -> coluna index 3)
-    const MONTH_COLUMN_OFFSET = 2; // mês 1 (Jan) está na coluna índice 3
+    // Estrutura da planilha: Coluna A = métrica, Colunas B-M (índices 1-12) = Jan-Dez
+    // Jan está na coluna B (índice 1), então o offset é 0 (mês 1 -> índice 1)
+    const MONTH_COLUMN_OFFSET = 0; // mês 1 (Jan) está na coluna índice 1
     
     const startDate = params?.from ?? new Date();
     const endDate = params?.to ?? params?.from ?? startDate;
@@ -537,7 +538,7 @@ export async function fetchMacro2026Data(params?: {
     const endMonth = Math.min(12, Math.max(1, endDate.getMonth() + 1));
     const monthStart = Math.min(startMonth, endMonth);
     const monthEnd = Math.max(startMonth, endMonth);
-    // Índices de coluna: Jan=3, Fev=4, Mar=5, etc.
+    // Índices de coluna: Jan=1, Fev=2, Mar=3, etc.
     const columnIndexes = Array.from(
       { length: monthEnd - monthStart + 1 }, 
       (_, i) => monthStart + i + MONTH_COLUMN_OFFSET
@@ -557,10 +558,9 @@ export async function fetchMacro2026Data(params?: {
       metricsSumMap[metricName] = sum;
     }
 
-    if ((import.meta as any)?.env?.DEV) {
-      console.debug('[Macro2026] columnIndexes:', columnIndexes);
-      console.debug('[Macro2026] metricsSumMap:', metricsSumMap);
-    }
+    // Always log to help debug metric mapping issues
+    console.debug('[Macro2026] columnIndexes:', columnIndexes);
+    console.debug('[Macro2026] metricsSumMap:', metricsSumMap);
     
     // Mapear métricas pelos nomes normalizados da planilha LOVABLE_HISTORICO_2026
     const vendas = metricsSumMap['vendas'] || 0;
