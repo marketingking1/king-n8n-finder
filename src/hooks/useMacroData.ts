@@ -112,38 +112,52 @@ export function useMacroData(dateRange: DateRange) {
     const filteredSheets = filterByDateRange(sheetsData.rows, dateRange.from, dateRange.to);
     const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
     
+    // Raw values from spreadsheet
+    const investimento = investmentMetrics.investimento;
+    const leads = macro2026Data.totalLeads;
+    const mql = macro2026Data.totalMql;
+    const vendas = macro2026Data.totalVendas;
+    const faturamento = macro2026Data.faturamento;
+    
+    // ALWAYS calculate derived metrics internally from raw values
+    const cpa = vendas > 0 ? investimento / vendas : 0;
+    const cpl = leads > 0 ? investimento / leads : 0;
+    const cpmql = mql > 0 ? investimento / mql : 0;
+    const roas = investimento > 0 ? faturamento / investimento : 0;
+    const roi = investimento > 0 ? ((faturamento - investimento) / investimento) * 100 : 0;
+    const ticketMedio = vendas > 0 ? faturamento / vendas : 0;
+    const taxaConversao = leads > 0 ? (mql / leads) * 100 : 0; // Lead→MQL
+    const taxaConversaoMqlVenda = mql > 0 ? (vendas / mql) * 100 : 0; // MQL→Venda
+    
+    // CAC = CPA + Custo Vendedor (usando valor fixo de R$ 50 por venda como estimativa)
+    const custoVendedor = vendas * 50;
+    const cac = vendas > 0 ? (investimento + custoVendedor) / vendas : 0;
+    
     // Debug logging (will only show in dev)
     if ((import.meta as any)?.env?.DEV) {
-      console.debug('[MacroData] dateRange.from:', dateRange.from?.toISOString());
-      console.debug('[MacroData] dateRange.to:', dateRange.to?.toISOString());
-      console.debug('[MacroData] Total rows in sheetsData:', sheetsData.rows.length);
-      console.debug('[MacroData] Filtered rows count:', filteredSheets.length);
-      console.debug('[MacroData] Investment calculated:', investmentMetrics.investimento);
-      console.debug('[MacroData] Macro2026Data:', macro2026Data);
+      console.debug('[MacroData] Raw values - Investimento:', investimento, 'Vendas:', vendas, 'Leads:', leads, 'MQL:', mql, 'Faturamento:', faturamento);
+      console.debug('[MacroData] Calculated - CPA:', cpa, 'CAC:', cac, 'ROAS:', roas, 'Taxa Lead→MQL:', taxaConversao);
     }
     
-    // Volume from LOVABLE_HISTORICO_2026 (dados mensais de 2026)
     return {
-      investimento: investmentMetrics.investimento,
+      investimento,
       impressoes: investmentMetrics.impressoes,
       cliques: investmentMetrics.cliques,
       ctr: investmentMetrics.ctr,
-      // Volume from planilha LOVABLE_HISTORICO_2026 (monthly totals)
-      leads: macro2026Data.totalLeads,
-      mql: macro2026Data.totalMql,
-      conversoes: macro2026Data.totalVendas,
-      receita: macro2026Data.faturamento,
-      // Métricas da planilha LOVABLE_HISTORICO_2026
-      faturamento: macro2026Data.faturamento,
-      ticketMedio: macro2026Data.ticketMedio,
-      cpa: macro2026Data.cpa,
-      cac: macro2026Data.cac,
-      cpl: macro2026Data.cpl,
-      cpmql: macro2026Data.cpmql,
-      roas: macro2026Data.roas,
-      roi: macro2026Data.roi,
-      taxaConversao: macro2026Data.taxaConversao,
-      taxaConversaoMqlVenda: macro2026Data.taxaConversaoMqlVenda,
+      leads,
+      mql,
+      conversoes: vendas,
+      receita: faturamento,
+      faturamento,
+      ticketMedio,
+      cpa,
+      cac,
+      cpl,
+      cpmql,
+      roas,
+      roi,
+      taxaConversao,
+      taxaConversaoMqlVenda,
     };
   }, [sheetsData, macro2026Data, dateRange]);
 
