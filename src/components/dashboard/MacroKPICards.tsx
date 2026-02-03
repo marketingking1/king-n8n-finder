@@ -238,7 +238,6 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="Investimento"
           value={formatCurrency(investimento)}
-          variation={variations?.investimento}
           colorType="neutral"
           icon={<DollarSign className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={0}
@@ -246,7 +245,6 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="Vendas"
           value={formatNumber(vendas)}
-          variation={variations?.conversoes}
           colorType="growth"
           icon={<ShoppingCart className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={1}
@@ -254,10 +252,8 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="CPA"
           value={formatCurrency(cpa)}
-          variation={cpaVariation}
           colorType="cpa"
           rawValue={cpa}
-          invertVariation={true}
           icon={<Target className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={2}
         />
@@ -272,7 +268,6 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="ROAS"
           value={formatROAS(roas)}
-          variation={roasVariation}
           colorType="roas"
           rawValue={roas}
           icon={<BarChart3 className="h-4 w-4 xl:h-5 xl:w-5" />}
@@ -281,7 +276,6 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <MainKPICard
           title="Lead→Venda"
           value={formatPercent(taxaConversao)}
-          variation={taxaVariation}
           colorType="conversion"
           icon={<TrendingUp className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={5}
@@ -299,28 +293,24 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
         <SecondaryKPICard
           title="Leads"
           value={formatNumber(leads)}
-          variation={variations?.leads}
           icon={<Users className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={1}
         />
         <SecondaryKPICard
           title="Impressões"
           value={formatNumber(currentMetrics?.impressoes || 0)}
-          variation={variations?.impressoes}
           icon={<Eye className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={2}
         />
         <SecondaryKPICard
           title="Cliques"
           value={formatNumber(currentMetrics?.cliques || 0)}
-          variation={variations?.cliques}
           icon={<MousePointer className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={3}
         />
         <SecondaryKPICard
           title="CTR"
           value={formatPercent(currentMetrics?.ctr || 0)}
-          variation={variations?.ctr}
           icon={<Percent className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={4}
         />
