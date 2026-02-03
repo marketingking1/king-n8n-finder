@@ -127,7 +127,7 @@ export function useMacroData(dateRange: DateRange) {
     const roas = investimento > 0 ? faturamento / investimento : 0;
     const roi = investimento > 0 ? ((faturamento - investimento) / investimento) * 100 : 0;
     const ticketMedio = vendas > 0 ? faturamento / vendas : 0;
-    const taxaConversao = leads > 0 ? (mql / leads) * 100 : 0; // Lead→MQL
+    const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0; // Lead→Venda
     const taxaConversaoMqlVenda = mql > 0 ? (vendas / mql) * 100 : 0; // MQL→Venda
     
     // CAC = CPA + (Custo Vendedor / Vendas)
