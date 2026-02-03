@@ -37,10 +37,7 @@ export function useLTVData() {
   });
   
   const [filters, setFilters] = useState<LTVFiltersState>({
-    dateRange: { 
-      from: new Date(2023, 0, 1),  // 01/01/2023
-      to: new Date(2025, 9, 31),   // 31/10/2025
-    },
+    dateRange: { from: undefined, to: undefined },
     canais: [],
     status: 'todos',
   });
