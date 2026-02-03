@@ -118,6 +118,7 @@ export function useMacroData(dateRange: DateRange) {
     const mql = macro2026Data.totalMql;
     const vendas = macro2026Data.totalVendas;
     const faturamento = macro2026Data.faturamento;
+    const custoVendedor = macro2026Data.custoVendedor; // Da planilha LOVABLE_HISTORICO_2026
     
     // ALWAYS calculate derived metrics internally from raw values
     const cpa = vendas > 0 ? investimento / vendas : 0;
@@ -129,13 +130,15 @@ export function useMacroData(dateRange: DateRange) {
     const taxaConversao = leads > 0 ? (mql / leads) * 100 : 0; // Lead→MQL
     const taxaConversaoMqlVenda = mql > 0 ? (vendas / mql) * 100 : 0; // MQL→Venda
     
-    // CAC = CPA + Custo Vendedor (usando valor fixo de R$ 50 por venda como estimativa)
-    const custoVendedor = vendas * 50;
-    const cac = vendas > 0 ? (investimento + custoVendedor) / vendas : 0;
+    // CAC = CPA + (Custo Vendedor / Vendas)
+    // O custoVendedor da planilha é o total, então dividimos por vendas para obter o unitário
+    const custoVendedorUnitario = vendas > 0 ? custoVendedor / vendas : 0;
+    const cac = cpa + custoVendedorUnitario;
     
     // Debug logging (will only show in dev)
     if ((import.meta as any)?.env?.DEV) {
       console.debug('[MacroData] Raw values - Investimento:', investimento, 'Vendas:', vendas, 'Leads:', leads, 'MQL:', mql, 'Faturamento:', faturamento);
+      console.debug('[MacroData] Custo Vendedor from sheet:', custoVendedor, 'Unitário:', custoVendedorUnitario);
       console.debug('[MacroData] Calculated - CPA:', cpa, 'CAC:', cac, 'ROAS:', roas, 'Taxa Lead→MQL:', taxaConversao);
     }
     

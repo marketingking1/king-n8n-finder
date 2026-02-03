@@ -481,6 +481,7 @@ export interface Macro2026Data {
   faturamento: number;      // Faturamento
   ticketMedio: number;      // Ticket Médio
   investimento: number;     // Investimento Mensal
+  custoVendedor: number;    // Custo Vendedor (da planilha)
   cpa: number;              // CPA (Custo por Aquisição - mídia)
   cac: number;              // CAC (CPA + Custo Vendedor)
   cpl: number;              // CPL
@@ -597,8 +598,11 @@ export async function fetchMacro2026Data(params?: {
     const mql = metricsSumMap['mql'] || 0;
     const faturamentoSum = metricsSumMap['faturamento'] || 0;
     const investimentoSum = metricsSumMap['investimento mensal'] || metricsSumMap['investimento'] || 0;
+    
+    // Buscar Custo Vendedor da planilha (pode estar como "custo vendedor", "custo_vendedor", etc.)
+    const custoVendedorSum = metricsSumMap['custo vendedor'] || metricsSumMap['custovendedor'] || metricsSumMap['custo_vendedor'] || 0;
 
-    console.debug('[Macro2026] Parsed volumes:', { vendas, leads, mql, faturamentoSum, investimentoSum });
+    console.debug('[Macro2026] Parsed volumes:', { vendas, leads, mql, faturamentoSum, investimentoSum, custoVendedorSum });
 
     // Para 1 mês: usamos os valores da própria planilha (batem com o reporting dela).
     // Para múltiplos meses: recalculamos métricas derivadas de forma consistente a partir dos totais.
@@ -606,21 +610,17 @@ export async function fetchMacro2026Data(params?: {
       ? (vendas > 0 ? faturamentoSum / vendas : 0)
       : (metricsSumMap['ticket medio'] || metricsSumMap['ticketmedio'] || 0);
     
-    // CPA: SEMPRE calcular a partir dos volumes para garantir consistência
-    // investimento / vendas (se tiver dados)
-    const cpaCalculated = vendas > 0 ? investimentoSum / vendas : 0;
-    const cpaFromSheet = metricsSumMap['cpa'] || 0;
-    const cpa = isMultiMonth ? cpaCalculated : (cpaFromSheet > 0 ? cpaFromSheet : cpaCalculated);
+    // CPA: SEMPRE calcular internamente = investimento / vendas
+    const cpa = vendas > 0 ? investimentoSum / vendas : 0;
     
-    console.debug('[Macro2026] CPA debug:', { cpaCalculated, cpaFromSheet, cpaFinal: cpa });
+    console.debug('[Macro2026] CPA debug:', { investimentoSum, vendas, cpa });
     
-    // CAC = CPA + Custo Vendedor (está pré-calculado na planilha)
-    // Fallback: se não encontrar na planilha, usa CPA calculado
-    const cacFromSheet = metricsSumMap['cac'] || 0;
-    const cacCalculated = cpaCalculated; // Fallback: CAC = CPA se não tiver custo vendedor
-    const cac = isMultiMonth
-      ? (cacFromSheet > 0 ? cacFromSheet / columnIndexes.length : cacCalculated)
-      : (cacFromSheet > 0 ? cacFromSheet : cacCalculated);
+    // CAC = CPA + Custo Vendedor (usando valor da planilha)
+    // Se custoVendedorSum for o total acumulado, dividimos pelo número de vendas para ter custo unitário
+    const custoVendedorUnitario = vendas > 0 ? custoVendedorSum / vendas : 0;
+    const cac = cpa + custoVendedorUnitario;
+    
+    console.debug('[Macro2026] CAC debug:', { cpa, custoVendedorSum, custoVendedorUnitario, cac });
     
     // CPL: custo por lead
     const cplCalculated = leads > 0 ? investimentoSum / leads : 0;
@@ -652,7 +652,7 @@ export async function fetchMacro2026Data(params?: {
     const taxaMqlVendaFromSheet = metricsSumMap['tx conversao mql > venda'] || metricsSumMap['taxa conversao mql venda'] || 0;
     const taxaConversaoMqlVenda = isMultiMonth ? taxaMqlVendaCalculated : (taxaMqlVendaFromSheet > 0 ? taxaMqlVendaFromSheet : taxaMqlVendaCalculated);
     
-    console.debug('[Macro2026] Final metrics:', { cpa, cac, roas, roi, cpl, cpmql, taxaConversao, taxaConversaoMqlVenda });
+    console.debug('[Macro2026] Final metrics:', { cpa, cac, custoVendedorSum, roas, roi, cpl, cpmql, taxaConversao, taxaConversaoMqlVenda });
     
     return {
       totalVendas: vendas,
@@ -661,6 +661,7 @@ export async function fetchMacro2026Data(params?: {
       faturamento: faturamentoSum,
       ticketMedio,
       investimento: investimentoSum,
+      custoVendedor: custoVendedorSum,
       cpa,
       cac,
       cpl,
