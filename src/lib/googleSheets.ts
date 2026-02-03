@@ -494,12 +494,10 @@ export interface Macro2026Data {
 }
 
 // Fetch Custo Vendedor from CUSTO_VENDAS tab
-// Estrutura: Coluna A = métrica, Colunas seguintes = meses (Jan-Dez)
-async function fetchCustoVendedor(params?: {
-  from?: Date;
-  to?: Date;
-}): Promise<number> {
-  const range = `${SHEET_NAME_CUSTO_VENDAS}!A:O`;
+// Estrutura simples: Linha 1 = nome (COMISSA_POR_VENDA), Linha 2 = valor (ex: 130)
+// Este é o custo fixo por venda (comissão do vendedor)
+async function fetchCustoVendedor(): Promise<number> {
+  const range = `${SHEET_NAME_CUSTO_VENDAS}!A:A`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_2026}/values/${range}?key=${GOOGLE_API_KEY}&valueRenderOption=FORMATTED_VALUE&_=${Date.now()}`;
 
   try {
@@ -519,60 +517,18 @@ async function fetchCustoVendedor(params?: {
     const data = await response.json();
     const values: string[][] = data.values || [];
     
-    console.debug('[CUSTO_VENDAS] Raw data rows:', values.length);
-    console.debug('[CUSTO_VENDAS] First 5 rows:', values.slice(0, 5));
+    console.debug('[CUSTO_VENDAS] Raw data:', values);
     
-    // Detectar coluna de Janeiro
-    let januaryColumnIndex = 1; // Default: coluna B (índice 1)
-    
-    if (values.length > 0) {
-      const headerRow = values[0];
-      for (let i = 0; i < headerRow.length; i++) {
-        const header = normalizeHeader(headerRow[i]);
-        if (header === 'jan' || header === 'janeiro' || header.includes('jan')) {
-          januaryColumnIndex = i;
-          console.debug('[CUSTO_VENDAS] Found January at column index:', i);
-          break;
-        }
-      }
+    // Estrutura: Linha 1 = nome da métrica, Linha 2 = valor
+    // Ex: [["COMISSA_POR_VENDA"], ["130"]]
+    if (values.length >= 2) {
+      const custoVendedor = parseNumber(values[1]?.[0]);
+      console.debug('[CUSTO_VENDAS] Custo por Vendedor (comissão por venda):', custoVendedor);
+      return custoVendedor;
     }
     
-    const MONTH_COLUMN_OFFSET = januaryColumnIndex - 1;
-    
-    const startDate = params?.from ?? new Date();
-    const endDate = params?.to ?? params?.from ?? startDate;
-    const startMonth = Math.min(12, Math.max(1, startDate.getMonth() + 1));
-    const endMonth = Math.min(12, Math.max(1, endDate.getMonth() + 1));
-    const monthStart = Math.min(startMonth, endMonth);
-    const monthEnd = Math.max(startMonth, endMonth);
-    
-    const columnIndexes = Array.from(
-      { length: monthEnd - monthStart + 1 }, 
-      (_, i) => monthStart + i + MONTH_COLUMN_OFFSET
-    );
-    
-    console.debug('[CUSTO_VENDAS] Column indexes for months:', columnIndexes);
-    
-    // Procurar linha com "Custo Vendedor" ou similar
-    let custoVendedorSum = 0;
-    
-    for (const row of values) {
-      const metricName = normalizeHeader(row[0] || '');
-      
-      // Procurar por variações do nome
-      if (metricName.includes('custo') && (metricName.includes('vendedor') || metricName.includes('venda'))) {
-        for (const colIndex of columnIndexes) {
-          const cellValue = row[colIndex];
-          const parsed = parseNumber(cellValue);
-          custoVendedorSum += parsed;
-          console.debug(`[CUSTO_VENDAS] ${metricName} col[${colIndex}]:`, cellValue, '-> parsed:', parsed);
-        }
-        break; // Encontrou a linha, pode sair
-      }
-    }
-    
-    console.debug('[CUSTO_VENDAS] Total Custo Vendedor:', custoVendedorSum);
-    return custoVendedorSum;
+    console.warn('[CUSTO_VENDAS] Estrutura inesperada, retornando 0');
+    return 0;
     
   } catch (error) {
     console.error('Error fetching CUSTO_VENDAS:', error);
@@ -688,7 +644,10 @@ export async function fetchMacro2026Data(params?: {
     const investimentoSum = metricsSumMap['investimento mensal'] || metricsSumMap['investimento'] || 0;
     
     // Buscar Custo Vendedor da aba CUSTO_VENDAS
-    const custoVendedorSum = await fetchCustoVendedor(params);
+    const custoVendedorPorVenda = await fetchCustoVendedor();
+    // custoVendedorPorVenda é o custo fixo por venda (comissão), ex: R$130
+    // Para calcular o custo total, multiplicamos pelo número de vendas
+    const custoVendedorSum = custoVendedorPorVenda * vendas;
 
     console.debug('[Macro2026] Parsed volumes:', { vendas, leads, mql, faturamentoSum, investimentoSum, custoVendedorSum });
 
