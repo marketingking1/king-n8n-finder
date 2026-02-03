@@ -279,7 +279,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           index={4}
         />
         <MainKPICard
-          title="Lead→MQL"
+          title="Lead→Venda"
           value={formatPercent(taxaConversao)}
           variation={taxaVariation}
           colorType="conversion"
