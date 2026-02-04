@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilters, MIN_DATE } from '@/hooks/useFilters';
 import { useFilteredSheetsData, useSheetsFilterOptions, sheetsToMarketingData } from '@/hooks/useGoogleSheetsData';
@@ -23,8 +23,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { DashboardDataProvider, useDashboardDataActions } from '@/contexts/DashboardDataContext';
+import { ChatWidget } from '@/components/chat';
 
-export default function Dashboard() {
+function DashboardContent() {
   const { user, session, loading: authLoading } = useAuth();
   const { filters, setDateRange, setGranularity, setCampanhas, setGrupos, setCanais, resetFilters } = useFilters();
   const [activeTab, setActiveTab] = useState('macro');
@@ -162,6 +164,36 @@ export default function Dashboard() {
     };
   }, [metrics, previousMetrics]);
 
+  // Update dashboard data context when data changes
+  const { setMacroData, setCampaignData } = useDashboardDataActions();
+
+  useEffect(() => {
+    if (macroMetrics || channelMetrics) {
+      setMacroData(
+        macroMetrics ? {
+          investimento: macroMetrics.investimento,
+          conversoes: macroMetrics.conversoes,
+          vendas: macroMetrics.conversoes,
+          leads: macroMetrics.leads,
+          receita: macroMetrics.receita,
+          cpa: macroMetrics.cpa,
+          roas: macroMetrics.roas,
+          ctr: macroMetrics.ctr,
+          cpl: macroMetrics.cpl,
+          ticketMedio: macroMetrics.ticketMedio,
+          taxaConversao: macroMetrics.taxaConversao,
+        } : {},
+        channelMetrics
+      );
+    }
+  }, [macroMetrics, channelMetrics, setMacroData]);
+
+  useEffect(() => {
+    if (campaignMetrics?.length > 0) {
+      setCampaignData(campaignMetrics);
+    }
+  }, [campaignMetrics, setCampaignData]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background p-6">
@@ -258,7 +290,6 @@ export default function Dashboard() {
     </>
   );
 
-
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
@@ -333,6 +364,27 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+
+      {/* Chat Widget - always visible */}
+      <ChatWidget
+        activeTab={activeTab}
+        dateRange={filters.dateRange}
+        filters={{
+          campanhas: filters.campanhas,
+          grupos: filters.grupos,
+          canais: filters.canais,
+          granularity: filters.granularity,
+        }}
+      />
     </div>
+  );
+}
+
+// Wrapper component with DashboardDataProvider
+export default function Dashboard() {
+  return (
+    <DashboardDataProvider>
+      <DashboardContent />
+    </DashboardDataProvider>
   );
 }
