@@ -1,6 +1,6 @@
 import { endOfDay, format, isValid, parse, parseISO, startOfDay } from 'date-fns';
 
-const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY || '';
 
 // Planilha 1: tabela_objetivo (mídia paga - investimento/custos)
 const SPREADSHEET_ID_OBJETIVO = '1ep-gKGRFkGoCVK0g0HABPDKjn4Wo4CV6WTgWF23BSL4';
