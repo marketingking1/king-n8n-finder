@@ -32,7 +32,10 @@ const STATUS_TO_CATEGORY: Record<string, LTVStatusCategory> = {
 };
 
 // Status que contam como churn (cancelados)
-const CHURN_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INADIMPLENTE', 'INATIVO'];
+const CHURN_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INATIVO'];
+
+// Status que contam como ativos (incluindo pausados e inadimplentes)
+const ACTIVE_STATUSES: LTVStatusOriginal[] = ['ATIVO', 'PAUSADO', 'PAUSADO NA AGENDA', 'INADIMPLENTE'];
 
 // Cores por status original
 export const STATUS_COLORS: Record<LTVStatusOriginal, string> = {
@@ -230,9 +233,11 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
     };
   }
   
-  const ativos = records.filter(r => r.statusOriginal === 'ATIVO');
+  // Ativos agora inclui: ATIVO, PAUSADO, PAUSADO NA AGENDA, INADIMPLENTE
+  const ativos = records.filter(r => ACTIVE_STATUSES.includes(r.statusOriginal));
   const cancelados = records.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
-  const pausados = records.filter(r => r.statusCategory === 'pausado');
+  // Pausados são apenas os com status PAUSADO ou PAUSADO NA AGENDA (para exibição separada)
+  const pausados = records.filter(r => r.statusOriginal === 'PAUSADO' || r.statusOriginal === 'PAUSADO NA AGENDA');
   
   // Bug 4: Filtrar registros com dados completos para cálculo de médias
   const recordsComLTV = records.filter(r => r.receitaTotal > 0);
@@ -333,7 +338,8 @@ export function calculateLTVByChannel(records: LTVRecord[]): ChannelLTVData[] {
     if (channelRecords.length < 5) continue; // Mínimo 5 alunos
     
     const cancelados = channelRecords.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
-    const ativos = channelRecords.filter(r => r.statusOriginal === 'ATIVO');
+    // Ativos agora inclui: ATIVO, PAUSADO, PAUSADO NA AGENDA, INADIMPLENTE
+    const ativos = channelRecords.filter(r => ACTIVE_STATUSES.includes(r.statusOriginal));
     
     // Bug 4: Filtrar registros com dados completos para cálculo de médias
     const recordsComTicket = channelRecords.filter(r => r.valorMensalidade > 0);
@@ -477,7 +483,8 @@ export function calculateCohortData(records: LTVRecord[]): CohortData[] {
   for (const [cohortKey, cohortRecords] of Object.entries(cohortMap)) {
     const cohortDate = parseISO(`${cohortKey}-01`);
     const cancelados = cohortRecords.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
-    const ativos = cohortRecords.filter(r => r.statusOriginal === 'ATIVO');
+    // Ativos agora inclui: ATIVO, PAUSADO, PAUSADO NA AGENDA, INADIMPLENTE
+    const ativos = cohortRecords.filter(r => ACTIVE_STATUSES.includes(r.statusOriginal));
     
     // Bug 4: Filtrar registros com dados completos para cálculo de médias
     const recordsComTicket = cohortRecords.filter(r => r.valorMensalidade > 0);
