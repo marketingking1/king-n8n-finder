@@ -10,7 +10,7 @@ export type LTVStatusOriginal =
   | 'INATIVO';
 
 // Categoria agrupada para filtros
-export type LTVStatusCategory = 'ativo' | 'cancelado' | 'pausado';
+export type LTVStatusCategory = 'ativo' | 'cancelado' | 'pausado' | 'inadimplente';
 
 export interface LTVRecord {
   dataMatricula: Date;
@@ -31,7 +31,7 @@ export interface LTVFiltersState {
     to: Date | undefined;
   };
   canais: string[];
-  status: 'todos' | 'ativo' | 'cancelado' | 'pausado';
+  status: 'todos' | 'ativo' | 'cancelado' | 'pausado' | 'inadimplente';
 }
 
 export interface LTVMetrics {
@@ -44,6 +44,7 @@ export interface LTVMetrics {
   alunosAtivos: number;
   alunosCancelados: number;
   alunosPausados: number;
+  alunosInadimplentes: number;
 }
 
 export interface CohortData {

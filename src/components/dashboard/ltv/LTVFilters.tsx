@@ -17,13 +17,14 @@ interface LTVFiltersProps {
   availableChannels: string[];
   onDateRangeChange: (from: Date | undefined, to: Date | undefined) => void;
   onCanaisChange: (canais: string[]) => void;
-  onStatusChange: (status: 'todos' | 'ativo' | 'cancelado' | 'pausado') => void;
+  onStatusChange: (status: 'todos' | 'ativo' | 'cancelado' | 'pausado' | 'inadimplente') => void;
   onReset: () => void;
 }
 
-const STATUS_OPTIONS: Array<{ value: 'todos' | 'ativo' | 'cancelado' | 'pausado'; label: string; color?: string }> = [
+const STATUS_OPTIONS: Array<{ value: 'todos' | 'ativo' | 'cancelado' | 'pausado' | 'inadimplente'; label: string; color?: string }> = [
   { value: 'todos', label: 'Todos' },
   { value: 'ativo', label: 'Ativo', color: 'bg-success' },
+  { value: 'inadimplente', label: 'Inadimplente', color: 'bg-orange-500' },
   { value: 'cancelado', label: 'Cancelado', color: 'bg-destructive' },
   { value: 'pausado', label: 'Pausado', color: 'bg-warning' },
 ];

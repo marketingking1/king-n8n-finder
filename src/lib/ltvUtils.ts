@@ -25,14 +25,17 @@ const REFERENCE_DATE = new Date(2026, 1, 1);
 const STATUS_TO_CATEGORY: Record<string, LTVStatusCategory> = {
   'ATIVO': 'ativo',
   'DESISTENCIA': 'cancelado',
-  'INADIMPLENTE': 'cancelado',
+  'INADIMPLENTE': 'inadimplente',
   'INATIVO': 'cancelado',
   'PAUSADO': 'pausado',
   'PAUSADO NA AGENDA': 'pausado',
 };
 
 // Status que contam como churn (cancelados)
-const CHURN_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INADIMPLENTE', 'INATIVO'];
+const CHURN_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INATIVO'];
+
+// Status que NÃO são ativos (para clareza na análise)
+const NON_ACTIVE_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INADIMPLENTE', 'INATIVO', 'PAUSADO', 'PAUSADO NA AGENDA'];
 
 // Cores por status original
 export const STATUS_COLORS: Record<LTVStatusOriginal, string> = {
@@ -203,9 +206,13 @@ export function filterLTVRecords(
       return false;
     }
     
-    // Filtro de status (categoria)
-    if (filters.status !== 'todos' && record.statusCategory !== filters.status) {
-      return false;
+    // Filtro de status (categoria) - inclui inadimplente como categoria separada
+    if (filters.status !== 'todos') {
+      if (filters.status === 'inadimplente') {
+        if (record.statusOriginal !== 'INADIMPLENTE') return false;
+      } else if (record.statusCategory !== filters.status) {
+        return false;
+      }
     }
     
     return true;
@@ -227,12 +234,14 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
       alunosAtivos: 0,
       alunosCancelados: 0,
       alunosPausados: 0,
+      alunosInadimplentes: 0,
     };
   }
   
   const ativos = records.filter(r => r.statusOriginal === 'ATIVO');
   const cancelados = records.filter(r => CHURN_STATUSES.includes(r.statusOriginal));
   const pausados = records.filter(r => r.statusCategory === 'pausado');
+  const inadimplentes = records.filter(r => r.statusOriginal === 'INADIMPLENTE');
   
   // Bug 4: Filtrar registros com dados completos para cálculo de médias
   const recordsComLTV = records.filter(r => r.receitaTotal > 0);
@@ -278,6 +287,7 @@ export function calculateLTVMetrics(records: LTVRecord[]): LTVMetrics {
     alunosAtivos: ativos.length,
     alunosCancelados: cancelados.length,
     alunosPausados: pausados.length,
+    alunosInadimplentes: inadimplentes.length,
   };
 }
 
