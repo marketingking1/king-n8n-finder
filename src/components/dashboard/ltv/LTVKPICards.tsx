@@ -71,7 +71,7 @@ export function LTVKPICards({ metrics, isLoading }: LTVKPICardsProps) {
     {
       title: 'Total de Alunos',
       value: formatNumber(metrics.totalAlunos),
-      subtitle: `Ativos: ${formatNumber(metrics.alunosAtivos)} · Cancelados: ${formatNumber(metrics.alunosCancelados)} · Pausados: ${formatNumber(metrics.alunosPausados)}`,
+      subtitle: `Ativos: ${formatNumber(metrics.alunosAtivos)} · Inad: ${formatNumber(metrics.alunosInadimplentes)} · Pausados: ${formatNumber(metrics.alunosPausados)} · Cancel: ${formatNumber(metrics.alunosCancelados)}`,
       icon: Users,
       colorClass: 'text-primary',
       bgClass: 'bg-primary/10',

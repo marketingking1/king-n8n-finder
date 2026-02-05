@@ -93,7 +93,7 @@ export function useLTVData() {
     setFilters(prev => ({ ...prev, canais }));
   }, []);
   
-  const setStatus = useCallback((status: 'todos' | 'ativo' | 'cancelado' | 'pausado') => {
+  const setStatus = useCallback((status: 'todos' | 'ativo' | 'cancelado' | 'pausado' | 'inadimplente') => {
     setFilters(prev => ({ ...prev, status }));
   }, []);
   
