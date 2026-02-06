@@ -34,8 +34,8 @@ const STATUS_TO_CATEGORY: Record<string, LTVStatusCategory> = {
 // Status que contam como churn (cancelados)
 const CHURN_STATUSES: LTVStatusOriginal[] = ['DESISTENCIA', 'INATIVO'];
 
-// Status que contam como ativos (incluindo pausados e inadimplentes)
-const ACTIVE_STATUSES: LTVStatusOriginal[] = ['ATIVO', 'PAUSADO', 'PAUSADO NA AGENDA', 'INADIMPLENTE'];
+// Status que contam como ativos (apenas ATIVO, PAUSADO e PAUSADO NA AGENDA)
+const ACTIVE_STATUSES: LTVStatusOriginal[] = ['ATIVO', 'PAUSADO', 'PAUSADO NA AGENDA'];
 
 // Cores por status original
 export const STATUS_COLORS: Record<LTVStatusOriginal, string> = {
