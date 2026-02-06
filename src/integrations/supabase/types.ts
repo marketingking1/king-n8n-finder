@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      leads: {
+        Row: {
+          call_agendada: boolean | null
+          call_realizada: boolean | null
+          compra: boolean | null
+          contrato: boolean | null
+          created_at: string | null
+          data: string | null
+          email: string | null
+          fbclid: string | null
+          gclid: string | null
+          id: string
+          id_facebook: string | null
+          mql: boolean | null
+          nome: string | null
+          tag: string | null
+          telefone: string
+          updated_at: string | null
+          utm_anuncio: string | null
+          utm_campaign: string | null
+          utm_conjunto: string | null
+        }
+        Insert: {
+          call_agendada?: boolean | null
+          call_realizada?: boolean | null
+          compra?: boolean | null
+          contrato?: boolean | null
+          created_at?: string | null
+          data?: string | null
+          email?: string | null
+          fbclid?: string | null
+          gclid?: string | null
+          id?: string
+          id_facebook?: string | null
+          mql?: boolean | null
+          nome?: string | null
+          tag?: string | null
+          telefone: string
+          updated_at?: string | null
+          utm_anuncio?: string | null
+          utm_campaign?: string | null
+          utm_conjunto?: string | null
+        }
+        Update: {
+          call_agendada?: boolean | null
+          call_realizada?: boolean | null
+          compra?: boolean | null
+          contrato?: boolean | null
+          created_at?: string | null
+          data?: string | null
+          email?: string | null
+          fbclid?: string | null
+          gclid?: string | null
+          id?: string
+          id_facebook?: string | null
+          mql?: boolean | null
+          nome?: string | null
+          tag?: string | null
+          telefone?: string
+          updated_at?: string | null
+          utm_anuncio?: string | null
+          utm_campaign?: string | null
+          utm_conjunto?: string | null
+        }
+        Relationships: []
+      }
       rag_copy_senior: {
         Row: {
           content: string | null
