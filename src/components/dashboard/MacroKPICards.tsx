@@ -283,7 +283,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
       </div>
 
       {/* Secondary KPI Cards - responsive grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 xl:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 xl:gap-4">
         <SecondaryKPICard
           title="Receita"
           value={formatCurrency(receita)}
@@ -297,22 +297,28 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           index={1}
         />
         <SecondaryKPICard
+          title="CPL"
+          value={formatCurrency(currentMetrics?.cpl || 0)}
+          icon={<Target className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={2}
+        />
+        <SecondaryKPICard
           title="Impressões"
           value={formatNumber(currentMetrics?.impressoes || 0)}
           icon={<Eye className="h-4 w-4 xl:h-5 xl:w-5" />}
-          index={2}
+          index={3}
         />
         <SecondaryKPICard
           title="Cliques"
           value={formatNumber(currentMetrics?.cliques || 0)}
           icon={<MousePointer className="h-4 w-4 xl:h-5 xl:w-5" />}
-          index={3}
+          index={4}
         />
         <SecondaryKPICard
           title="CTR"
           value={formatPercent(currentMetrics?.ctr || 0)}
           icon={<Percent className="h-4 w-4 xl:h-5 xl:w-5" />}
-          index={4}
+          index={5}
         />
       </div>
     </div>
