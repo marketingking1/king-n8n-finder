@@ -4,9 +4,14 @@ import { FilterState, Granularity, DateRange } from '@/types/dashboard';
 // Data mínima: 1 de Janeiro de 2026
 export const MIN_DATE = new Date(2026, 0, 1);
 
+// Sempre abre com o mês atual
+const now = new Date();
+const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+const defaultFrom = firstDayOfMonth < MIN_DATE ? MIN_DATE : firstDayOfMonth;
+
 const defaultDateRange: DateRange = {
-  from: MIN_DATE,
-  to: new Date(),
+  from: defaultFrom,
+  to: now,
 };
 
 const defaultFilters: FilterState = {
