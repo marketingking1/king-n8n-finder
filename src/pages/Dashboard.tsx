@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFilters, MIN_DATE } from '@/hooks/useFilters';
 import { useFilteredSheetsData, useSheetsFilterOptions, sheetsToMarketingData } from '@/hooks/useGoogleSheetsData';
 import { useMacroData } from '@/hooks/useMacroData';
+import { useFunnelMacroData } from '@/hooks/useFunnelMacroData';
 import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calculateVariation } from '@/lib/metrics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -75,6 +76,7 @@ function DashboardContent() {
     queryClient.invalidateQueries({ queryKey: ['macro-2026-data'] });
     queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
     queryClient.invalidateQueries({ queryKey: ['leads-compradores-data'] });
+    queryClient.invalidateQueries({ queryKey: ['funnel-macro-data'] });
     toast({
       title: 'Atualizando dados...',
       description: 'Os dados estão sendo recarregados.',
@@ -87,6 +89,9 @@ function DashboardContent() {
   
   // Macro data (current month vs previous month)
   const { current: macroMetrics, previous: previousMacroMetrics, channelMetrics, isLoading: macroLoading } = useMacroData(filters.dateRange);
+
+  // Funnel data from Supabase (leads Kommo, call agendada, call realizada)
+  const { data: funnelMacroData, isLoading: funnelLoading } = useFunnelMacroData(filters.dateRange);
   
   // Convert sheets data to MarketingData format
   const marketingData = useMemo(() => {
@@ -228,9 +233,10 @@ function DashboardContent() {
       
       {/* Funnel, Channel Mix and YoY Comparison Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ConversionFunnel 
-          metrics={macroMetrics} 
-          isLoading={macroLoading || dataLoading} 
+        <ConversionFunnel
+          metrics={macroMetrics}
+          funnelData={funnelMacroData}
+          isLoading={macroLoading || dataLoading || funnelLoading}
         />
         <ChannelMixChart 
           data={channelMetrics} 
