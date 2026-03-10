@@ -199,17 +199,20 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, fun
 
   // Use currentMetrics from Sheets data
   const vendas = currentMetrics?.conversoes || 0;
-  const leads = currentMetrics?.leads || 0;
-  const mql = currentMetrics?.mql || 0;
   const investimento = currentMetrics?.investimento || 0;
-  
+
+  // Leads: usar CRM (Kommo) como fonte única
+  const leads = funnelData?.leads || 0;
+
   // Usar métricas diretamente da planilha LOVABLE_HISTORICO_2026
   const receita = currentMetrics?.faturamento || 0;
   const cpa = currentMetrics?.cpa || 0;
-  const cac = currentMetrics?.cac || 0; // CAC já calculado na planilha (CPA + Custo Vendedor)
+  const cac = currentMetrics?.cac || 0;
   const roas = currentMetrics?.roas || 0;
-  const taxaConversao = currentMetrics?.taxaConversao || 0; // Lead > MQL
-  const taxaConversaoMqlVenda = currentMetrics?.taxaConversaoMqlVenda || 0; // MQL > Venda
+
+  // Recalcular métricas derivadas com leads do CRM
+  const cpl = leads > 0 ? investimento / leads : 0;
+  const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
 
   // Custo por Call Agendada e Realizada
   const callAgendada = funnelData?.callAgendada || 0;
@@ -301,7 +304,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, fun
         />
         <SecondaryKPICard
           title="CPL"
-          value={formatCurrency(currentMetrics?.cpl || 0)}
+          value={formatCurrency(cpl)}
           icon={<Target className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={2}
         />
