@@ -81,7 +81,8 @@ export function ConversionFunnel({ metrics, funnelData, isLoading }: ConversionF
     const cliquesToLeads = cliques > 0 ? (leadsMarketing / cliques) * 100 : 0;
 
     if (hasFunnelData) {
-      // Full funnel: Impressões → Cliques → Leads (marketing) → Leads (Kommo) → Call Agendada → Call Realizada → Vendas
+      // Full funnel: Impressões → Cliques → Leads (CRM) → Call Agendada → Call Realizada → Vendas
+      const cliquesToLeadsCRM = cliques > 0 ? (leads / cliques) * 100 : 0;
       const leadsToCallAgendada = leads > 0 ? (callAgendada / leads) * 100 : 0;
       const callAgendadaToRealizada = callAgendada > 0 ? (callRealizada / callAgendada) * 100 : 0;
       const callRealizadaToVendas = callRealizada > 0 ? (vendas / callRealizada) * 100 : 0;
@@ -93,33 +94,28 @@ export function ConversionFunnel({ metrics, funnelData, isLoading }: ConversionF
           bgColor: 'bg-[hsl(216,30%,14%)]'
         },
         {
-          name: 'Cliques', value: cliques, conversionRate: cliquesToLeads,
-          icon: <MousePointer className="h-4 w-4" />, widthPercent: 90,
+          name: 'Cliques', value: cliques, conversionRate: cliquesToLeadsCRM,
+          icon: <MousePointer className="h-4 w-4" />, widthPercent: 88,
           bgColor: 'bg-[hsl(216,30%,14%)]'
         },
         {
-          name: 'Leads (Mídia)', value: leadsMarketing, conversionRate: leadsMarketing > 0 ? (leads / leadsMarketing) * 100 : undefined,
-          icon: <Users className="h-4 w-4" />, widthPercent: 78,
-          bgColor: 'bg-[hsl(216,30%,14%)]'
-        },
-        {
-          name: 'Leads (CRM)', value: leads, conversionRate: leadsToCallAgendada,
-          icon: <Users className="h-4 w-4" />, widthPercent: 66,
+          name: 'Leads', value: leads, conversionRate: leadsToCallAgendada,
+          icon: <Users className="h-4 w-4" />, widthPercent: 74,
           bgColor: 'bg-[hsl(220,30%,14%)]'
         },
         {
           name: 'Call Agendada', value: callAgendada, conversionRate: callAgendadaToRealizada,
-          icon: <CalendarCheck className="h-4 w-4" />, widthPercent: 54,
+          icon: <CalendarCheck className="h-4 w-4" />, widthPercent: 60,
           bgColor: 'bg-[hsl(220,30%,14%)]'
         },
         {
           name: 'Call Realizada', value: callRealizada, conversionRate: callRealizadaToVendas,
-          icon: <PhoneCall className="h-4 w-4" />, widthPercent: 42,
+          icon: <PhoneCall className="h-4 w-4" />, widthPercent: 46,
           bgColor: 'bg-[hsl(220,30%,14%)]'
         },
         {
           name: 'Vendas', value: vendas,
-          icon: <ShoppingCart className="h-4 w-4" />, widthPercent: 30,
+          icon: <ShoppingCart className="h-4 w-4" />, widthPercent: 32,
           bgColor: 'bg-success/10 border-success/20', isLast: true
         },
       ];
