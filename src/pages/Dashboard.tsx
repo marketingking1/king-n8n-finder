@@ -222,7 +222,8 @@ function DashboardContent() {
         currentMetrics={macroMetrics}
         previousMetrics={previousMacroMetrics}
         sheetsData={filteredSheetsData}
-        isLoading={macroLoading || dataLoading}
+        funnelData={funnelMacroData}
+        isLoading={macroLoading || dataLoading || funnelLoading}
       />
       
       {/* Channel Performance Table */}

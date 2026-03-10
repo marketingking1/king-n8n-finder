@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { MacroMetrics } from '@/hooks/useMacroData';
+import { FunnelMacroData } from '@/hooks/useFunnelMacroData';
 import { formatCurrency, formatNumber, formatPercent, formatROAS, formatVariation } from '@/lib/formatters';
-import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent } from 'lucide-react';
+import { DollarSign, ShoppingCart, Target, BarChart3, TrendingUp, Wallet, Users, Eye, MousePointer, Percent, CalendarCheck, PhoneCall } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -15,6 +16,7 @@ interface MacroKPICardsProps {
   currentMetrics: MacroMetrics | undefined;
   previousMetrics: MacroMetrics | null | undefined;
   sheetsData: SheetsDataSummary | undefined | null;
+  funnelData?: FunnelMacroData;
   isLoading: boolean;
 }
 
@@ -182,7 +184,7 @@ function KPICardSkeleton({ isMain = false }: { isMain?: boolean }) {
   );
 }
 
-export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isLoading }: MacroKPICardsProps) {
+export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, funnelData, isLoading }: MacroKPICardsProps) {
   const variations = useMemo(() => {
     if (!currentMetrics || !previousMetrics) return null;
     return {
@@ -209,10 +211,11 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
   const taxaConversao = currentMetrics?.taxaConversao || 0; // Lead > MQL
   const taxaConversaoMqlVenda = currentMetrics?.taxaConversaoMqlVenda || 0; // MQL > Venda
 
-  // Não calculamos variações para a planilha LOVABLE_HISTORICO_2026 (não há dados de período anterior)
-  const cpaVariation = undefined;
-  const roasVariation = undefined;
-  const taxaVariation = undefined;
+  // Custo por Call Agendada e Realizada
+  const callAgendada = funnelData?.callAgendada || 0;
+  const callRealizada = funnelData?.callRealizada || 0;
+  const custoCallAgendada = callAgendada > 0 ? investimento / callAgendada : 0;
+  const custoCallRealizada = callRealizada > 0 ? investimento / callRealizada : 0;
 
   if (isLoading) {
     return (
@@ -222,8 +225,8 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
             <KPICardSkeleton key={i} isMain />
           ))}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          {[...Array(8)].map((_, i) => (
             <KPICardSkeleton key={i} />
           ))}
         </div>
@@ -283,7 +286,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
       </div>
 
       {/* Secondary KPI Cards - responsive grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 xl:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 xl:gap-4">
         <SecondaryKPICard
           title="Receita"
           value={formatCurrency(receita)}
@@ -303,22 +306,34 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, isL
           index={2}
         />
         <SecondaryKPICard
+          title="Custo/Call Ag."
+          value={formatCurrency(custoCallAgendada)}
+          icon={<CalendarCheck className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={3}
+        />
+        <SecondaryKPICard
+          title="Custo/Call Re."
+          value={formatCurrency(custoCallRealizada)}
+          icon={<PhoneCall className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={4}
+        />
+        <SecondaryKPICard
           title="Impressões"
           value={formatNumber(currentMetrics?.impressoes || 0)}
           icon={<Eye className="h-4 w-4 xl:h-5 xl:w-5" />}
-          index={3}
+          index={5}
         />
         <SecondaryKPICard
           title="Cliques"
           value={formatNumber(currentMetrics?.cliques || 0)}
           icon={<MousePointer className="h-4 w-4 xl:h-5 xl:w-5" />}
-          index={4}
+          index={6}
         />
         <SecondaryKPICard
           title="CTR"
           value={formatPercent(currentMetrics?.ctr || 0)}
           icon={<Percent className="h-4 w-4 xl:h-5 xl:w-5" />}
-          index={5}
+          index={7}
         />
       </div>
     </div>
