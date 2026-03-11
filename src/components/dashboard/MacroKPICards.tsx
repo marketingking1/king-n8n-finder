@@ -197,28 +197,22 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, fun
     };
   }, [currentMetrics, previousMetrics]);
 
-  // Use currentMetrics from Sheets data
+  // Vendas e investimento da planilha
   const vendas = currentMetrics?.conversoes || 0;
   const investimento = currentMetrics?.investimento || 0;
-
-  // Leads: CRM (Kommo) para exibição no card secundário
-  const leadsCRM = funnelData?.leads || 0;
-  // Leads da planilha (mesma fonte que vendas) para cálculos de taxa
-  const leadsSheet = currentMetrics?.leads || 0;
-
-  // Usar métricas da planilha LOVABLE_HISTORICO_2026 (fonte consistente)
   const receita = currentMetrics?.faturamento || 0;
   const cpa = currentMetrics?.cpa || 0;
   const cac = currentMetrics?.cac || 0;
   const roas = currentMetrics?.roas || 0;
-  const cpl = currentMetrics?.cpl || 0;
 
-  // Lead→Venda: usar vendas e leads DA MESMA FONTE (planilha) para consistência
-  const taxaConversao = currentMetrics?.taxaConversao || 0;
-
-  // Custo por Call Agendada e Realizada (dados do CRM/plataforma)
+  // Leads, Calls: dados REAIS do Supabase (CRM/plataforma) — planilha desatualizada
+  const leads = funnelData?.leads || 0;
   const callAgendada = funnelData?.callAgendada || 0;
   const callRealizada = funnelData?.callRealizada || 0;
+
+  // Taxas calculadas com leads do CRM (fonte real) + vendas da planilha
+  const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
+  const cpl = leads > 0 ? investimento / leads : 0;
   const custoCallAgendada = callAgendada > 0 ? investimento / callAgendada : 0;
   const custoCallRealizada = callRealizada > 0 ? investimento / callRealizada : 0;
 
@@ -300,7 +294,7 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, fun
         />
         <SecondaryKPICard
           title="Leads"
-          value={formatNumber(leadsCRM)}
+          value={formatNumber(leads)}
           icon={<Users className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={1}
         />
