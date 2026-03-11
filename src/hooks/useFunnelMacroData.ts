@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { startOfDay, endOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface FunnelMacroData {
@@ -18,11 +19,13 @@ async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Prom
     .select('lead_id', { count: 'exact', head: true })
     .eq('pipeline_id', 6919767);
 
+  // Usar startOfDay/endOfDay para garantir que o filtro de timestamp
+  // capture o dia inteiro (date picker retorna meia-noite, que em UTC-3 corta o dia)
   if (dateRange.from) {
-    leadsQuery = leadsQuery.gte('created_at', dateRange.from.toISOString());
+    leadsQuery = leadsQuery.gte('created_at', startOfDay(dateRange.from).toISOString());
   }
   if (dateRange.to) {
-    leadsQuery = leadsQuery.lte('created_at', dateRange.to.toISOString());
+    leadsQuery = leadsQuery.lte('created_at', endOfDay(dateRange.to).toISOString());
   }
 
   // Fetch platform data for calls
