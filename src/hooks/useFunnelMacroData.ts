@@ -9,7 +9,11 @@ export interface FunnelMacroData {
 }
 
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Usar date local (não UTC) para evitar que UTC-3 vaze para o dia seguinte
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Promise<FunnelMacroData> {
