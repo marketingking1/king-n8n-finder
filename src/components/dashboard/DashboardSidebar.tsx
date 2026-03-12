@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  BarChart3,
   Video,
   TrendingUp,
+  Filter,
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -49,9 +50,15 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       icon: BarChart3,
       onClick: () => onTabChange('detailed')
     },
-    { 
-      id: 'criativos', 
-      label: 'Análise Nano', 
+    {
+      id: 'funil',
+      label: 'Análise Funil',
+      icon: Filter,
+      onClick: () => onTabChange('funil')
+    },
+    {
+      id: 'criativos',
+      label: 'Análise Nano',
       icon: Video,
       onClick: () => onTabChange('criativos')
     },

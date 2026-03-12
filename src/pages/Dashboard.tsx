@@ -19,8 +19,7 @@ import { ChannelEfficiencyScatter } from '@/components/dashboard/charts/ChannelE
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
-import { ChannelFunnel } from '@/components/dashboard/ChannelFunnel';
-import { ChannelFunnelTable } from '@/components/dashboard/ChannelFunnelTable';
+import { FunnelAnalysis } from '@/components/dashboard/FunnelAnalysis';
 import { CreativeAnalysis } from '@/components/dashboard/CreativeAnalysis';
 import { LTVAnalysis } from '@/components/dashboard/ltv/LTVAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -285,8 +284,6 @@ function DashboardContent() {
       ) : metrics ? (
         <div className="space-y-6">
           <KPICards metrics={metrics} variations={variations} />
-          <ChannelFunnel data={channelFunnelData} isLoading={channelFunnelLoading} />
-          <ChannelFunnelTable data={channelFunnelData} isLoading={channelFunnelLoading} />
           <TrendCharts
             timeSeriesData={timeSeriesData} 
             weeklyTimeSeriesData={weeklyTimeSeriesData}
@@ -346,22 +343,26 @@ function DashboardContent() {
           {/* Tab Title */}
           <div className="mb-6">
             <h2 className="text-2xl font-display font-bold text-foreground">
-              {activeTab === 'macro' 
-                ? 'Visão Macro' 
-                : activeTab === 'detailed' 
-                  ? 'Análise Micro' 
-                  : activeTab === 'criativos'
-                    ? 'Análise Nano'
-                    : 'Análise LTV'}
+              {activeTab === 'macro'
+                ? 'Visão Macro'
+                : activeTab === 'detailed'
+                  ? 'Análise Micro'
+                  : activeTab === 'funil'
+                    ? 'Análise Funil'
+                    : activeTab === 'criativos'
+                      ? 'Análise Nano'
+                      : 'Análise LTV'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {activeTab === 'macro' 
+              {activeTab === 'macro'
                 ? 'Consolidação geral do negócio e métricas de alto nível'
                 : activeTab === 'detailed'
                   ? 'Performance detalhada de campanhas e métricas de mídia'
-                  : activeTab === 'criativos'
-                    ? 'Performance de criativos de vídeo e métricas de retenção'
-                    : 'Lifetime Value e análise de retenção de alunos'
+                  : activeTab === 'funil'
+                    ? 'Funil de vendas completo com custo por etapa e segmentação por canal'
+                    : activeTab === 'criativos'
+                      ? 'Performance de criativos de vídeo e métricas de retenção'
+                      : 'Lifetime Value e análise de retenção de alunos'
               }
             </p>
           </div>
@@ -370,6 +371,14 @@ function DashboardContent() {
           <div className="animate-fade-in">
             {activeTab === 'macro' && macroContent}
             {activeTab === 'detailed' && detailedContent}
+            {activeTab === 'funil' && (
+              <FunnelAnalysis
+                macroMetrics={macroMetrics}
+                funnelMacroData={funnelMacroData}
+                channelFunnelData={channelFunnelData}
+                isLoading={macroLoading || funnelLoading || channelFunnelLoading}
+              />
+            )}
             {activeTab === 'criativos' && (
               <CreativeAnalysis 
                 dateRange={filters.dateRange} 
