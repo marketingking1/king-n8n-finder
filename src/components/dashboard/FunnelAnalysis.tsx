@@ -42,6 +42,7 @@ const CHANNEL_COLORS: Record<string, { bg: string; text: string; bar: string }> 
   'LinkedIn':  { bg: 'bg-sky-500/10', text: 'text-sky-400', bar: 'hsl(210, 80%, 42%)' },
   'Orgânico':  { bg: 'bg-purple-500/10', text: 'text-purple-400', bar: 'hsl(270, 50%, 50%)' },
   'Indicação': { bg: 'bg-orange-500/10', text: 'text-orange-400', bar: 'hsl(35, 90%, 50%)' },
+  'Não identificado': { bg: 'bg-zinc-500/10', text: 'text-zinc-400', bar: 'hsl(0, 0%, 55%)' },
 };
 
 function getChannelStyle(canal: string) {
@@ -341,7 +342,7 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
     </TableHead>
   );
 
-  const isOrganic = (c: string) => c === 'Orgânico' || c === 'Indicação';
+  const isOrganic = (c: string) => c === 'Orgânico' || c === 'Indicação' || c === 'Não identificado';
 
   if (!data.length) return null;
 
