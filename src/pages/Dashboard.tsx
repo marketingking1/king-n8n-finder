@@ -4,6 +4,7 @@ import { useFilters, MIN_DATE } from '@/hooks/useFilters';
 import { useFilteredSheetsData, useSheetsFilterOptions, sheetsToMarketingData } from '@/hooks/useGoogleSheetsData';
 import { useMacroData } from '@/hooks/useMacroData';
 import { useFunnelMacroData } from '@/hooks/useFunnelMacroData';
+import { useFunnelByChannel } from '@/hooks/useFunnelByChannel';
 import { calculateMetrics, groupByCampaign, groupByTime, calculateFunnel, calculateVariation } from '@/lib/metrics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,8 @@ import { ChannelEfficiencyScatter } from '@/components/dashboard/charts/ChannelE
 import { KPICards } from '@/components/dashboard/KPICards';
 import { TrendCharts } from '@/components/dashboard/TrendCharts';
 import { CampaignTable } from '@/components/dashboard/CampaignTable';
+import { ChannelFunnel } from '@/components/dashboard/ChannelFunnel';
+import { ChannelFunnelTable } from '@/components/dashboard/ChannelFunnelTable';
 import { CreativeAnalysis } from '@/components/dashboard/CreativeAnalysis';
 import { LTVAnalysis } from '@/components/dashboard/ltv/LTVAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -77,6 +80,7 @@ function DashboardContent() {
     queryClient.invalidateQueries({ queryKey: ['creative-sheets-data'] });
     queryClient.invalidateQueries({ queryKey: ['leads-compradores-data'] });
     queryClient.invalidateQueries({ queryKey: ['funnel-macro-data'] });
+    queryClient.invalidateQueries({ queryKey: ['funnel-by-channel'] });
     toast({
       title: 'Atualizando dados...',
       description: 'Os dados estão sendo recarregados.',
@@ -92,6 +96,9 @@ function DashboardContent() {
 
   // Funnel data from Supabase (leads Kommo, call agendada, call realizada)
   const { data: funnelMacroData, isLoading: funnelLoading } = useFunnelMacroData(filters.dateRange);
+
+  // Funnel by channel for Micro tab
+  const { data: channelFunnelData, isLoading: channelFunnelLoading } = useFunnelByChannel(filters.dateRange, channelMetrics);
   
   // Convert sheets data to MarketingData format
   const marketingData = useMemo(() => {
@@ -278,7 +285,9 @@ function DashboardContent() {
       ) : metrics ? (
         <div className="space-y-6">
           <KPICards metrics={metrics} variations={variations} />
-          <TrendCharts 
+          <ChannelFunnel data={channelFunnelData} isLoading={channelFunnelLoading} />
+          <ChannelFunnelTable data={channelFunnelData} isLoading={channelFunnelLoading} />
+          <TrendCharts
             timeSeriesData={timeSeriesData} 
             weeklyTimeSeriesData={weeklyTimeSeriesData}
             funnelData={funnelData}
