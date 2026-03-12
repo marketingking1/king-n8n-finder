@@ -48,16 +48,15 @@ async function fetchFunnelByChannel(dateRange: DateRange): Promise<RpcRow[]> {
 }
 
 // Map channel metrics canal names to the normalized canal names from the RPC
-function matchChannelInvestment(canal: string, channelMetrics: ChannelMetrics[]): number {
+function matchChannelMetric(canal: string, channelMetrics: ChannelMetrics[]): ChannelMetrics | null {
   const canalLower = canal.toLowerCase();
-  const match = channelMetrics.find(cm => {
+  return channelMetrics.find(cm => {
     const cmLower = (cm.canal || '').toLowerCase();
     if (canalLower === 'meta ads') return cmLower.includes('meta') || cmLower.includes('facebook');
     if (canalLower === 'google ads') return cmLower.includes('google');
     if (canalLower === 'linkedin') return cmLower.includes('linkedin');
     return false;
-  });
-  return match?.investimento ?? 0;
+  }) ?? null;
 }
 
 export function useFunnelByChannel(dateRange: DateRange, channelMetrics: ChannelMetrics[]) {
@@ -76,20 +75,23 @@ export function useFunnelByChannel(dateRange: DateRange, channelMetrics: Channel
   const data = useMemo<ChannelFunnelData[]>(() => {
     if (!query.data) return [];
     return query.data.map(row => {
-      const investimento = matchChannelInvestment(row.canal, channelMetrics);
+      const matched = matchChannelMetric(row.canal, channelMetrics);
+      const investimento = matched?.investimento ?? 0;
+      // Para canais pagos, usar leads da tabela_objetivo (mesma fonte da Análise Micro)
+      const leads = matched ? matched.leadsMidia : row.leads;
       return {
         canal: row.canal,
-        leads: row.leads,
+        leads,
         callAgendada: row.call_agendada,
         callRealizada: row.call_realizada,
         noshow: row.noshow,
         venda: row.venda,
         investimento,
-        cpl: row.leads > 0 && investimento > 0 ? investimento / row.leads : 0,
+        cpl: leads > 0 && investimento > 0 ? investimento / leads : 0,
         cpCallAgendada: row.call_agendada > 0 && investimento > 0 ? investimento / row.call_agendada : 0,
         cpCallRealizada: row.call_realizada > 0 && investimento > 0 ? investimento / row.call_realizada : 0,
         cpa: row.venda > 0 && investimento > 0 ? investimento / row.venda : 0,
-        taxaAgendamento: row.leads > 0 ? (row.call_agendada / row.leads) * 100 : 0,
+        taxaAgendamento: leads > 0 ? (row.call_agendada / leads) * 100 : 0,
         taxaRealizacao: row.call_agendada > 0 ? (row.call_realizada / row.call_agendada) * 100 : 0,
         taxaNoshow: row.call_agendada > 0 ? (row.noshow / row.call_agendada) * 100 : 0,
         taxaVenda: row.call_realizada > 0 ? (row.venda / row.call_realizada) * 100 : 0,

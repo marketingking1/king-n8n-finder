@@ -20,6 +20,7 @@ interface FunnelAnalysisProps {
   macroMetrics: MacroMetrics | undefined;
   funnelMacroData: FunnelMacroData | undefined;
   channelFunnelData: ChannelFunnelData[];
+  sheetsLeadsTotal: number;
   isLoading: boolean;
 }
 
@@ -438,7 +439,7 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function FunnelAnalysis({ macroMetrics, funnelMacroData, channelFunnelData, isLoading }: FunnelAnalysisProps) {
+export function FunnelAnalysis({ macroMetrics, funnelMacroData, channelFunnelData, sheetsLeadsTotal, isLoading }: FunnelAnalysisProps) {
   // Build macro funnel stages with cost-per-unit
   const { stages, kpis } = useMemo(() => {
     if (!macroMetrics) return { stages: [] as FunnelStage[], kpis: null };
@@ -448,7 +449,8 @@ export function FunnelAnalysis({ macroMetrics, funnelMacroData, channelFunnelDat
     const cliques = macroMetrics.cliques || 0;
     const vendas = macroMetrics.conversoes || 0;
 
-    const leads = funnelMacroData?.leads ?? 0;
+    // Leads vêm da tabela_objetivo (mesma fonte da Análise Micro / campanhas)
+    const leads = sheetsLeadsTotal;
     const callAgendada = funnelMacroData?.callAgendada ?? 0;
     const callRealizada = funnelMacroData?.callRealizada ?? 0;
 
