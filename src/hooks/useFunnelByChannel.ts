@@ -12,6 +12,8 @@ export interface ChannelFunnelData {
   venda: number;
   investimento: number;
   cpl: number;
+  cpCallAgendada: number;
+  cpCallRealizada: number;
   cpa: number;
   taxaAgendamento: number;
   taxaRealizacao: number;
@@ -84,6 +86,8 @@ export function useFunnelByChannel(dateRange: DateRange, channelMetrics: Channel
         venda: row.venda,
         investimento,
         cpl: row.leads > 0 && investimento > 0 ? investimento / row.leads : 0,
+        cpCallAgendada: row.call_agendada > 0 && investimento > 0 ? investimento / row.call_agendada : 0,
+        cpCallRealizada: row.call_realizada > 0 && investimento > 0 ? investimento / row.call_realizada : 0,
         cpa: row.venda > 0 && investimento > 0 ? investimento / row.venda : 0,
         taxaAgendamento: row.leads > 0 ? (row.call_agendada / row.leads) * 100 : 0,
         taxaRealizacao: row.call_agendada > 0 ? (row.call_realizada / row.call_agendada) * 100 : 0,

@@ -269,7 +269,7 @@ function CostPerStageCards({ stages }: { stages: FunnelStage[] }) {
 
 // ─── Channel Detail Table ────────────────────────────────────────────────────
 
-type SortField = 'canal' | 'investimento' | 'leads' | 'callAgendada' | 'callRealizada' | 'noshow' | 'taxaNoshow' | 'venda' | 'taxaVenda' | 'cpl' | 'cpa' | 'taxaAgendamento' | 'taxaRealizacao';
+type SortField = 'canal' | 'investimento' | 'leads' | 'callAgendada' | 'callRealizada' | 'noshow' | 'taxaNoshow' | 'venda' | 'taxaVenda' | 'cpl' | 'cpCallAgendada' | 'cpCallRealizada' | 'cpa' | 'taxaAgendamento' | 'taxaRealizacao';
 
 function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
   const [sortField, setSortField] = useState<SortField>('leads');
@@ -301,6 +301,8 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
       taxaNoshow: t.callAgendada > 0 ? (t.noshow / t.callAgendada) * 100 : 0,
       taxaVenda: t.callRealizada > 0 ? (t.venda / t.callRealizada) * 100 : 0,
       cpl: t.leads > 0 && t.investimento > 0 ? t.investimento / t.leads : 0,
+      cpCallAgendada: t.callAgendada > 0 && t.investimento > 0 ? t.investimento / t.callAgendada : 0,
+      cpCallRealizada: t.callRealizada > 0 && t.investimento > 0 ? t.investimento / t.callRealizada : 0,
       cpa: t.venda > 0 && t.investimento > 0 ? t.investimento / t.venda : 0,
     };
   }, [data]);
@@ -311,12 +313,13 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
   };
 
   const exportCSV = () => {
-    const headers = ['Canal', 'Investimento', 'Leads', 'Call Agend.', '% Agend.', 'Call Real.', '% Real.', 'No-show', '% No-show', 'Venda', '% Venda', 'CPL', 'CPA'];
+    const headers = ['Canal', 'Investimento', 'Leads', 'CPL', 'Call Agend.', '% Agend.', 'CP Call Agend.', 'Call Real.', '% Real.', 'CP Call Real.', 'No-show', '% No-show', 'Venda', '% Venda', 'CPA'];
     const rows = sorted.map(r => [
-      r.canal, r.investimento.toFixed(2), r.leads, r.callAgendada,
-      r.taxaAgendamento.toFixed(2), r.callRealizada, r.taxaRealizacao.toFixed(2),
+      r.canal, r.investimento.toFixed(2), r.leads, r.cpl.toFixed(2),
+      r.callAgendada, r.taxaAgendamento.toFixed(2), r.cpCallAgendada.toFixed(2),
+      r.callRealizada, r.taxaRealizacao.toFixed(2), r.cpCallRealizada.toFixed(2),
       r.noshow, r.taxaNoshow.toFixed(2), r.venda, r.taxaVenda.toFixed(2),
-      r.cpl.toFixed(2), r.cpa.toFixed(2),
+      r.cpa.toFixed(2),
     ]);
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -357,15 +360,17 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
               <SH field="canal">Canal</SH>
               <SH field="investimento">Invest.</SH>
               <SH field="leads">Leads</SH>
+              <SH field="cpl">CPL</SH>
               <SH field="callAgendada">Agend.</SH>
               <SH field="taxaAgendamento">% Agend.</SH>
+              <SH field="cpCallAgendada">CP Agend.</SH>
               <SH field="callRealizada">Real.</SH>
               <SH field="taxaRealizacao">% Real.</SH>
+              <SH field="cpCallRealizada">CP Real.</SH>
               <SH field="noshow">No-show</SH>
               <SH field="taxaNoshow">% No-show</SH>
               <SH field="venda">Venda</SH>
               <SH field="taxaVenda">% Conv.</SH>
-              <SH field="cpl">CPL</SH>
               <SH field="cpa">CPA</SH>
             </TableRow>
           </TableHeader>
@@ -382,14 +387,17 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
                   </TableCell>
                   <TableCell className="text-sm">{row.investimento > 0 ? formatCurrency(row.investimento) : '-'}</TableCell>
                   <TableCell className="text-sm font-medium">{formatNumber(row.leads)}</TableCell>
+                  <TableCell className="text-sm">{isOrganic(row.canal) || row.cpl === 0 ? '-' : formatCurrency(row.cpl)}</TableCell>
                   <TableCell className="text-sm">{formatNumber(row.callAgendada)}</TableCell>
                   <TableCell className={cn("text-sm", row.taxaAgendamento >= 5 ? "text-success" : row.taxaAgendamento >= 1 ? "text-warning" : "text-muted-foreground")}>
                     {row.leads > 0 ? formatPercent(row.taxaAgendamento) : '-'}
                   </TableCell>
+                  <TableCell className="text-sm">{isOrganic(row.canal) || row.cpCallAgendada === 0 ? '-' : formatCurrency(row.cpCallAgendada)}</TableCell>
                   <TableCell className="text-sm">{formatNumber(row.callRealizada)}</TableCell>
                   <TableCell className={cn("text-sm", row.taxaRealizacao >= 50 ? "text-success" : row.taxaRealizacao >= 30 ? "text-warning" : "text-muted-foreground")}>
                     {row.callAgendada > 0 ? formatPercent(row.taxaRealizacao) : '-'}
                   </TableCell>
+                  <TableCell className="text-sm">{isOrganic(row.canal) || row.cpCallRealizada === 0 ? '-' : formatCurrency(row.cpCallRealizada)}</TableCell>
                   <TableCell className="text-sm">{formatNumber(row.noshow)}</TableCell>
                   <TableCell className={cn("text-sm font-medium", row.taxaNoshow >= 40 ? "text-destructive" : row.taxaNoshow >= 20 ? "text-warning" : "text-success")}>
                     {row.callAgendada > 0 ? formatPercent(row.taxaNoshow) : '-'}
@@ -398,7 +406,6 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
                   <TableCell className={cn("text-sm font-medium", row.taxaVenda >= 30 ? "text-success" : row.taxaVenda >= 10 ? "text-warning" : "text-muted-foreground")}>
                     {row.callRealizada > 0 ? formatPercent(row.taxaVenda) : '-'}
                   </TableCell>
-                  <TableCell className="text-sm">{isOrganic(row.canal) || row.cpl === 0 ? '-' : formatCurrency(row.cpl)}</TableCell>
                   <TableCell className="text-sm">{isOrganic(row.canal) || row.cpa === 0 ? '-' : formatCurrency(row.cpa)}</TableCell>
                 </TableRow>
               );
@@ -408,15 +415,17 @@ function ChannelDetailTable({ data }: { data: ChannelFunnelData[] }) {
               <TableCell className="text-sm">TOTAL</TableCell>
               <TableCell className="text-sm">{totals.investimento > 0 ? formatCurrency(totals.investimento) : '-'}</TableCell>
               <TableCell className="text-sm">{formatNumber(totals.leads)}</TableCell>
+              <TableCell className="text-sm">{totals.cpl > 0 ? formatCurrency(totals.cpl) : '-'}</TableCell>
               <TableCell className="text-sm">{formatNumber(totals.callAgendada)}</TableCell>
               <TableCell className="text-sm">{formatPercent(totals.taxaAgendamento)}</TableCell>
+              <TableCell className="text-sm">{totals.cpCallAgendada > 0 ? formatCurrency(totals.cpCallAgendada) : '-'}</TableCell>
               <TableCell className="text-sm">{formatNumber(totals.callRealizada)}</TableCell>
               <TableCell className="text-sm">{formatPercent(totals.taxaRealizacao)}</TableCell>
+              <TableCell className="text-sm">{totals.cpCallRealizada > 0 ? formatCurrency(totals.cpCallRealizada) : '-'}</TableCell>
               <TableCell className="text-sm">{formatNumber(totals.noshow)}</TableCell>
               <TableCell className="text-sm">{formatPercent(totals.taxaNoshow)}</TableCell>
               <TableCell className="text-sm">{formatNumber(totals.venda)}</TableCell>
               <TableCell className="text-sm">{formatPercent(totals.taxaVenda)}</TableCell>
-              <TableCell className="text-sm">{totals.cpl > 0 ? formatCurrency(totals.cpl) : '-'}</TableCell>
               <TableCell className="text-sm">{totals.cpa > 0 ? formatCurrency(totals.cpa) : '-'}</TableCell>
             </TableRow>
           </TableBody>
