@@ -36,7 +36,8 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const basePath = import.meta.env.VITE_BASE_PATH || "";
+    const redirectUrl = `${window.location.origin}${basePath}`;
     
     const { error } = await supabase.auth.signUp({
       email,
