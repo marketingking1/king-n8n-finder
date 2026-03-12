@@ -99,11 +99,6 @@ function DashboardContent() {
   // Funnel by channel for Micro tab
   const { data: channelFunnelData, isLoading: channelFunnelLoading } = useFunnelByChannel(filters.dateRange, channelMetrics);
 
-  // Total leads from tabela_objetivo (mesma fonte da Análise Micro / campanhas)
-  const sheetsLeadsTotal = useMemo(() => {
-    return channelMetrics.reduce((sum, cm) => sum + cm.leadsMidia, 0);
-  }, [channelMetrics]);
-  
   // Convert sheets data to MarketingData format
   const marketingData = useMemo(() => {
     if (!filteredSheetsData) return null;
@@ -381,7 +376,6 @@ function DashboardContent() {
                 macroMetrics={macroMetrics}
                 funnelMacroData={funnelMacroData}
                 channelFunnelData={channelFunnelData}
-                sheetsLeadsTotal={sheetsLeadsTotal}
                 isLoading={macroLoading || funnelLoading || channelFunnelLoading}
               />
             )}
