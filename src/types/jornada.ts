@@ -1,20 +1,26 @@
+export type ChannelType = 'native-form' | 'landing-page';
+
 export interface JornadaChannelWeek {
   semana: number; // 1-4
   investimento: number;
+  impressoes: number;
   cpm: number;
   frequencia: number;
   cliquesLink: number;
   custoClick: number;
   ctrLink: number;
-  connectRate: number;
+  // Landing page metrics (Google Ads only)
   sessoes: number;
   sessoesEngajadas: number;
+  connectRate: number;
   taxaConversaoPagina: number;
+  // Funnel metrics (all channels)
   lead: number;
   custoPorLead: number;
   leadToMql: number;
   mql: number;
   cpmql: number;
+  callRealizada: number;
   custoPorReuniao: number;
   vendas: number;
   cpa: number;
@@ -23,6 +29,7 @@ export interface JornadaChannelWeek {
 
 export interface JornadaChannel {
   canal: 'Meta Ads' | 'Google Ads' | 'LinkedIn';
+  channelType: ChannelType;
   semanas: JornadaChannelWeek[];
   mes: JornadaChannelWeek; // consolidado mensal
 }
@@ -42,13 +49,6 @@ export interface JornadaNode {
 export interface PorqueAnalysis {
   problema: string;
   porques: string[]; // até 5
-}
-
-// Thresholds para cada KPI (valores de referência para classificação)
-export interface KPIThresholds {
-  ok: number;
-  warning: number;
-  // abaixo de warning = critical
 }
 
 // Mapa de indicadores para exibição na tabela

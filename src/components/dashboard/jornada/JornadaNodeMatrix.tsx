@@ -38,9 +38,14 @@ export function JornadaNodeMatrix({ nodes }: JornadaNodeMatrixProps) {
 
   return (
     <div className="rounded-xl border border-border bg-[hsl(215,35%,11%)] p-4">
-      <h3 className="text-sm font-display font-semibold text-foreground mb-4">
-        Matriz de Nós da Jornada
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-display font-semibold text-foreground">
+          Funil de Formulário Nativo
+        </h3>
+        <span className="text-[10px] text-muted-foreground/60">
+          Investimento → CPM → CTR → Lead (form nativo) → MQL → Venda
+        </span>
+      </div>
 
       <TooltipProvider delayDuration={200}>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">

@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useGoogleSheetsData } from './useGoogleSheetsData';
 import { useMacroData } from './useMacroData';
 import { useFunnelByChannel } from './useFunnelByChannel';
 import { filterByDateRange } from '@/lib/googleSheets';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addWeeks, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { JornadaChannel, JornadaChannelWeek, JornadaNode, NodeStatus, JornadaIndicator } from '@/types/jornada';
-import type { DateRange } from '@/types/dashboard';
+import type { JornadaChannel, JornadaChannelWeek, JornadaNode, NodeStatus, JornadaIndicator, ChannelType } from '@/types/jornada';
+import type { DateRange, ChannelMetrics } from '@/types/dashboard';
+import type { ChannelFunnelData } from './useFunnelByChannel';
 
 // Canal colors for headers
 export const JORNADA_CHANNEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -15,34 +16,67 @@ export const JORNADA_CHANNEL_COLORS: Record<string, { bg: string; border: string
   'LinkedIn': { bg: 'bg-[#B7903F]/15', border: 'border-[#B7903F]/30', text: 'text-[#B7903F]' },
 };
 
-// KPI indicators definition for the channel table
-export const JORNADA_INDICATORS: JornadaIndicator[] = [
+// Channel type mapping
+export const CHANNEL_TYPES: Record<string, ChannelType> = {
+  'Meta Ads': 'native-form',
+  'LinkedIn': 'native-form',
+  'Google Ads': 'landing-page',
+};
+
+// KPI indicators for NATIVE FORM channels (Meta Ads, LinkedIn)
+// No landing page metrics — leads come from native forms inside the platform
+export const NATIVE_FORM_INDICATORS: JornadaIndicator[] = [
   { key: 'investimento', label: 'Investimento', format: 'currency', tooltip: 'Verba aplicada no período' },
+  { key: 'impressoes', label: 'Impressões', format: 'number', tooltip: 'Total de impressões dos anúncios' },
   { key: 'cpm', label: 'CPM', format: 'currency', tooltip: 'Custo por mil impressões = (Investimento / Impressões) × 1000' },
-  { key: 'frequencia', label: 'Frequência', format: 'decimal', tooltip: 'Impressões / Alcance (estimado)' },
   { key: 'cliquesLink', label: 'Cliques no Link', format: 'number', tooltip: 'Total de cliques em links dos anúncios' },
-  { key: 'custoClick', label: 'Custo por Click', format: 'currency', tooltip: 'CPC = Investimento / Cliques' },
-  { key: 'ctrLink', label: 'CTR Link', format: 'percent', tooltip: 'CTR = (Cliques / Impressões) × 100' },
-  { key: 'connectRate', label: 'Connect Rate', format: 'percent', tooltip: 'Sessões engajadas / Cliques × 100' },
-  { key: 'sessoes', label: 'Sessões', format: 'number', tooltip: 'Total de sessões na landing page' },
-  { key: 'sessoesEngajadas', label: 'Sessões Engajadas', format: 'number', tooltip: 'Sessões com engajamento significativo' },
-  { key: 'taxaConversaoPagina', label: 'Conv. Página', format: 'percent', tooltip: 'Taxa de conversão da página = Leads / Sessões × 100' },
-  { key: 'lead', label: 'Leads', format: 'number', tooltip: 'Total de leads gerados' },
+  { key: 'custoClick', label: 'CPC', format: 'currency', tooltip: 'CPC = Investimento / Cliques' },
+  { key: 'ctrLink', label: 'CTR', format: 'percent', tooltip: 'CTR = (Cliques / Impressões) × 100' },
+  { key: 'lead', label: 'Leads (Form Nativo)', format: 'number', tooltip: 'Leads gerados via formulário nativo da plataforma' },
   { key: 'custoPorLead', label: 'CPL', format: 'currency', tooltip: 'Custo por Lead = Investimento / Leads' },
-  { key: 'leadToMql', label: 'Lead → MQL', format: 'percent', tooltip: 'Taxa de qualificação = MQL / Leads × 100' },
+  { key: 'leadToMql', label: 'Lead → MQL', format: 'percent', tooltip: 'Taxa de qualificação = Call Agendada / Leads × 100' },
   { key: 'mql', label: 'MQL (Call Agendada)', format: 'number', tooltip: 'Marketing Qualified Lead = calls agendadas' },
   { key: 'cpmql', label: 'CPMQL', format: 'currency', tooltip: 'Custo por MQL = Investimento / MQL' },
+  { key: 'callRealizada', label: 'Call Realizada', format: 'number', tooltip: 'Reuniões efetivamente realizadas' },
   { key: 'custoPorReuniao', label: 'CP Reunião', format: 'currency', tooltip: 'Custo por reunião realizada = Investimento / Calls Realizadas' },
   { key: 'vendas', label: 'Vendas', format: 'number', tooltip: 'Total de vendas fechadas' },
   { key: 'cpa', label: 'CPA', format: 'currency', tooltip: 'Custo por Aquisição = Investimento / Vendas' },
   { key: 'roas', label: 'ROAS', format: 'decimal', tooltip: 'Return on Ad Spend = Receita / Investimento' },
 ];
 
+// KPI indicators for LANDING PAGE channels (Google Ads)
+// Includes page metrics: sessions, connect rate, page conversion rate
+export const LANDING_PAGE_INDICATORS: JornadaIndicator[] = [
+  { key: 'investimento', label: 'Investimento', format: 'currency', tooltip: 'Verba aplicada no período' },
+  { key: 'impressoes', label: 'Impressões', format: 'number', tooltip: 'Total de impressões dos anúncios' },
+  { key: 'cpm', label: 'CPM', format: 'currency', tooltip: 'Custo por mil impressões = (Investimento / Impressões) × 1000' },
+  { key: 'cliquesLink', label: 'Cliques no Link', format: 'number', tooltip: 'Total de cliques em links dos anúncios' },
+  { key: 'custoClick', label: 'CPC', format: 'currency', tooltip: 'CPC = Investimento / Cliques' },
+  { key: 'ctrLink', label: 'CTR', format: 'percent', tooltip: 'CTR = (Cliques / Impressões) × 100' },
+  { key: 'connectRate', label: 'Connect Rate', format: 'percent', tooltip: 'Sessões engajadas / Cliques × 100 (requer GA4)' },
+  { key: 'sessoes', label: 'Sessões', format: 'number', tooltip: 'Total de sessões na landing page (requer GA4)' },
+  { key: 'sessoesEngajadas', label: 'Sessões Engajadas', format: 'number', tooltip: 'Sessões com engajamento significativo (requer GA4)' },
+  { key: 'taxaConversaoPagina', label: 'Conv. Página', format: 'percent', tooltip: 'Taxa de conversão = Leads / Sessões × 100 (requer GA4)' },
+  { key: 'lead', label: 'Leads', format: 'number', tooltip: 'Total de leads gerados via landing page' },
+  { key: 'custoPorLead', label: 'CPL', format: 'currency', tooltip: 'Custo por Lead = Investimento / Leads' },
+  { key: 'leadToMql', label: 'Lead → MQL', format: 'percent', tooltip: 'Taxa de qualificação = Call Agendada / Leads × 100' },
+  { key: 'mql', label: 'MQL (Call Agendada)', format: 'number', tooltip: 'Marketing Qualified Lead = calls agendadas' },
+  { key: 'cpmql', label: 'CPMQL', format: 'currency', tooltip: 'Custo por MQL = Investimento / MQL' },
+  { key: 'callRealizada', label: 'Call Realizada', format: 'number', tooltip: 'Reuniões efetivamente realizadas' },
+  { key: 'custoPorReuniao', label: 'CP Reunião', format: 'currency', tooltip: 'Custo por reunião realizada = Investimento / Calls Realizadas' },
+  { key: 'vendas', label: 'Vendas', format: 'number', tooltip: 'Total de vendas fechadas' },
+  { key: 'cpa', label: 'CPA', format: 'currency', tooltip: 'Custo por Aquisição = Investimento / Vendas' },
+  { key: 'roas', label: 'ROAS', format: 'decimal', tooltip: 'Return on Ad Spend = Receita / Investimento' },
+];
+
+// Returns the correct indicator list for a channel type
+export function getIndicatorsForChannel(channelType: ChannelType): JornadaIndicator[] {
+  return channelType === 'native-form' ? NATIVE_FORM_INDICATORS : LANDING_PAGE_INDICATORS;
+}
+
 // Thresholds for node status classification
 const NODE_THRESHOLDS: Record<string, { okMin: number; warningMin: number }> = {
   ctrLink: { okMin: 1.5, warningMin: 0.8 },
-  connectRate: { okMin: 40, warningMin: 25 },
-  taxaConversaoPagina: { okMin: 15, warningMin: 8 },
   leadToMql: { okMin: 30, warningMin: 15 },
   taxaVenda: { okMin: 20, warningMin: 10 },
 };
@@ -59,6 +93,7 @@ function emptyWeek(semana: number): JornadaChannelWeek {
   return {
     semana,
     investimento: 0,
+    impressoes: 0,
     cpm: 0,
     frequencia: 0,
     cliquesLink: 0,
@@ -73,6 +108,7 @@ function emptyWeek(semana: number): JornadaChannelWeek {
     leadToMql: 0,
     mql: 0,
     cpmql: 0,
+    callRealizada: 0,
     custoPorReuniao: 0,
     vendas: 0,
     cpa: 0,
@@ -84,30 +120,36 @@ function consolidateWeeks(semanas: JornadaChannelWeek[]): JornadaChannelWeek {
   const mes = emptyWeek(0);
   for (const s of semanas) {
     mes.investimento += s.investimento;
+    mes.impressoes += s.impressoes;
     mes.cliquesLink += s.cliquesLink;
     mes.sessoes += s.sessoes;
     mes.sessoesEngajadas += s.sessoesEngajadas;
     mes.lead += s.lead;
     mes.mql += s.mql;
+    mes.callRealizada += s.callRealizada;
     mes.vendas += s.vendas;
   }
   // Recalculate derived metrics from totals
-  mes.cpm = mes.cliquesLink > 0 ? (mes.investimento / mes.cliquesLink) * 1000 : 0;
+  mes.cpm = mes.impressoes > 0 ? (mes.investimento / mes.impressoes) * 1000 : 0;
   mes.custoClick = mes.cliquesLink > 0 ? mes.investimento / mes.cliquesLink : 0;
-  mes.ctrLink = semanas.length > 0
-    ? semanas.reduce((sum, s) => sum + s.ctrLink, 0) / semanas.filter(s => s.ctrLink > 0).length || 0
-    : 0;
+  mes.ctrLink = mes.impressoes > 0 ? (mes.cliquesLink / mes.impressoes) * 100 : 0;
   mes.connectRate = mes.cliquesLink > 0 ? (mes.sessoesEngajadas / mes.cliquesLink) * 100 : 0;
   mes.taxaConversaoPagina = mes.sessoes > 0 ? (mes.lead / mes.sessoes) * 100 : 0;
   mes.custoPorLead = mes.lead > 0 ? mes.investimento / mes.lead : 0;
   mes.leadToMql = mes.lead > 0 ? (mes.mql / mes.lead) * 100 : 0;
   mes.cpmql = mes.mql > 0 ? mes.investimento / mes.mql : 0;
-  mes.custoPorReuniao = mes.mql > 0 ? mes.investimento / mes.mql : 0; // approximation
+  mes.custoPorReuniao = mes.callRealizada > 0 ? mes.investimento / mes.callRealizada : 0;
   mes.cpa = mes.vendas > 0 ? mes.investimento / mes.vendas : 0;
-  mes.roas = mes.investimento > 0 ? (mes.vendas * 5000) / mes.investimento : 0; // estimated ticket
-  mes.frequencia = semanas.length > 0
-    ? semanas.reduce((sum, s) => sum + s.frequencia, 0) / semanas.filter(s => s.frequencia > 0).length || 0
-    : 0;
+  // ROAS uses the same value stored per week (receita / investimento)
+  // We sum receita from vendas * avg ticket — but we don't have receita here,
+  // so we take weighted average of weekly ROAS
+  const weeksWithRoas = semanas.filter(s => s.roas > 0);
+  if (weeksWithRoas.length > 0) {
+    const totalInvestWeeks = weeksWithRoas.reduce((s, w) => s + w.investimento, 0);
+    mes.roas = totalInvestWeeks > 0
+      ? weeksWithRoas.reduce((s, w) => s + w.roas * w.investimento, 0) / totalInvestWeeks
+      : 0;
+  }
   return mes;
 }
 
@@ -118,6 +160,16 @@ function normalizeChannelName(canal: string): 'Meta Ads' | 'Google Ads' | 'Linke
   if (lower.includes('google')) return 'Google Ads';
   if (lower.includes('linkedin')) return 'LinkedIn';
   return null;
+}
+
+// Match a normalized channel name to channelMetrics entry
+function findChannelMetric(canalName: string, channelMetrics: ChannelMetrics[]): ChannelMetrics | null {
+  return channelMetrics.find(cm => normalizeChannelName(cm.canal) === canalName) ?? null;
+}
+
+// Match a normalized channel name to channelFunnelData entry
+function findFunnelData(canalName: string, funnelData: ChannelFunnelData[]): ChannelFunnelData | null {
+  return funnelData.find(f => normalizeChannelName(f.canal) === canalName) ?? null;
 }
 
 // Get available months for selector
@@ -154,12 +206,12 @@ export function useJornadaData(selectedMonth?: Date) {
 
   // Build channel data with weekly breakdown
   const channels = useMemo<JornadaChannel[]>(() => {
-    if (!sheetsData || !channelFunnelData) return [];
+    if (!sheetsData || channelMetrics.length === 0) return [];
 
     const channelNames: Array<'Meta Ads' | 'Google Ads' | 'LinkedIn'> = ['Meta Ads', 'Google Ads', 'LinkedIn'];
     const filteredRows = filterByDateRange(sheetsData.rows, dateRange.from, dateRange.to);
 
-    // Group rows by channel
+    // Group raw rows by normalized channel — ONLY for weekly distribution proportions
     const rowsByChannel: Record<string, typeof filteredRows> = {};
     for (const row of filteredRows) {
       const normalized = normalizeChannelName(row.canal);
@@ -173,7 +225,7 @@ export function useJornadaData(selectedMonth?: Date) {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
     const weeks: { start: Date; end: Date }[] = [];
-    let weekStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(monthStart, { weekStartsOn: 1 });
     for (let i = 0; i < 5; i++) {
       const wStart = i === 0 ? monthStart : addWeeks(weekStart, i);
       const wEnd = endOfWeek(addWeeks(weekStart, i), { weekStartsOn: 1 });
@@ -184,81 +236,104 @@ export function useJornadaData(selectedMonth?: Date) {
       }
       if (weeks.length >= 4) break;
     }
-
-    // Ensure we always have 4 weeks
     while (weeks.length < 4) {
       weeks.push({ start: monthEnd, end: monthEnd });
     }
 
     return channelNames.map(canalName => {
+      // SOURCE OF TRUTH: channelMetrics from useMacroData (same as Macro/Micro tabs)
+      const cm = findChannelMetric(canalName, channelMetrics);
+      const funnel = findFunnelData(canalName, channelFunnelData);
       const rows = rowsByChannel[canalName] || [];
-      const funnelData = channelFunnelData.find(f => normalizeChannelName(f.canal) === canalName);
+      const channelType = CHANNEL_TYPES[canalName];
+
+      // Total investment from channelMetrics (authoritative source)
+      const totalInvest = cm?.investimento ?? 0;
+      const totalImpress = cm?.impressoes ?? 0;
+      const totalClicks = cm?.cliques ?? 0;
+      const totalLeadsMedia = cm?.leadsMidia ?? 0;
+      const totalReceita = cm?.receita ?? 0;
+
+      // Total funnel from useFunnelByChannel (authoritative source for CRM data)
+      const totalLeads = funnel?.leads ?? totalLeadsMedia;
+      const totalMql = funnel?.callAgendada ?? 0;
+      const totalCallRealizada = funnel?.callRealizada ?? 0;
+      const totalVendas = funnel?.venda ?? 0;
+
+      // Calculate weekly proportions from raw row investment
+      const rowTotalInvest = rows.reduce((s, r) => s + r.investimento, 0);
 
       const semanas: JornadaChannelWeek[] = weeks.map((week, idx) => {
-        // Filter rows for this week
         const weekRows = rows.filter(r => {
           const d = new Date(r.data);
           return isWithinInterval(d, { start: week.start, end: week.end });
         });
 
-        const investimento = weekRows.reduce((s, r) => s + r.investimento, 0);
-        const impressoes = weekRows.reduce((s, r) => s + r.impressoes, 0);
-        const cliques = weekRows.reduce((s, r) => s + r.cliques, 0);
-        const leadsMedia = weekRows.reduce((s, r) => s + r.leads, 0);
+        // Weekly proportion based on raw row distribution
+        const weekRowInvest = weekRows.reduce((s, r) => s + r.investimento, 0);
+        const proportion = rowTotalInvest > 0 ? weekRowInvest / rowTotalInvest : 0.25;
 
-        // Distribute funnel data proportionally across weeks
-        const totalInvest = rows.reduce((s, r) => s + r.investimento, 0);
-        const proportion = totalInvest > 0 ? investimento / totalInvest : 0.25;
-
-        const leads = funnelData ? Math.round(funnelData.leads * proportion) : leadsMedia;
-        const mql = funnelData ? Math.round(funnelData.callAgendada * proportion) : 0;
-        const vendas = funnelData ? Math.round(funnelData.venda * proportion) : 0;
+        // Distribute authoritative totals proportionally
+        const investimento = totalInvest * proportion;
+        const impressoes = totalImpress * proportion;
+        const cliques = totalClicks * proportion;
+        const leads = Math.round(totalLeads * proportion);
+        const mql = Math.round(totalMql * proportion);
+        const callRealizada = Math.round(totalCallRealizada * proportion);
+        const vendas = Math.round(totalVendas * proportion);
+        const receita = totalReceita * proportion;
 
         return {
           semana: idx + 1,
           investimento,
+          impressoes,
           cpm: impressoes > 0 ? (investimento / impressoes) * 1000 : 0,
-          frequencia: 0, // not available from current data
+          frequencia: 0,
           cliquesLink: cliques,
           custoClick: cliques > 0 ? investimento / cliques : 0,
           ctrLink: impressoes > 0 ? (cliques / impressoes) * 100 : 0,
-          connectRate: 0, // requires GA4 sessions data
+          // Landing page metrics — 0 for native-form channels, placeholder for Google until GA4
+          connectRate: 0,
           sessoes: 0,
           sessoesEngajadas: 0,
-          taxaConversaoPagina: 0, // requires session data
+          taxaConversaoPagina: 0,
+          // Funnel metrics
           lead: leads,
           custoPorLead: leads > 0 ? investimento / leads : 0,
           leadToMql: leads > 0 ? (mql / leads) * 100 : 0,
           mql,
           cpmql: mql > 0 ? investimento / mql : 0,
-          custoPorReuniao: mql > 0 ? investimento / mql : 0,
+          callRealizada,
+          custoPorReuniao: callRealizada > 0 ? investimento / callRealizada : 0,
           vendas,
           cpa: vendas > 0 ? investimento / vendas : 0,
-          roas: investimento > 0 ? (vendas * 5000) / investimento : 0, // ticket médio estimado
+          roas: investimento > 0 ? receita / investimento : 0,
         };
       });
 
       return {
         canal: canalName,
+        channelType,
         semanas,
         mes: consolidateWeeks(semanas),
       };
     });
-  }, [sheetsData, channelFunnelData, dateRange, month]);
+  }, [sheetsData, channelMetrics, channelFunnelData, dateRange, month]);
 
-  // Build journey nodes (aggregated across all channels)
+  // Build journey nodes — native form funnel (no page metrics)
   const nodes = useMemo<JornadaNode[]>(() => {
     if (channels.length === 0) return [];
 
     const totalInvest = channels.reduce((s, c) => s + c.mes.investimento, 0);
+    const totalImpress = channels.reduce((s, c) => s + c.mes.impressoes, 0);
     const totalCliques = channels.reduce((s, c) => s + c.mes.cliquesLink, 0);
     const totalLeads = channels.reduce((s, c) => s + c.mes.lead, 0);
     const totalMql = channels.reduce((s, c) => s + c.mes.mql, 0);
+    const totalCallRealizada = channels.reduce((s, c) => s + c.mes.callRealizada, 0);
     const totalVendas = channels.reduce((s, c) => s + c.mes.vendas, 0);
 
-    const avgCtr = channels.reduce((s, c) => s + c.mes.ctrLink, 0) / channels.length;
-    const avgConnectRate = channels.reduce((s, c) => s + c.mes.connectRate, 0) / channels.length;
-    const avgConvPagina = channels.reduce((s, c) => s + c.mes.taxaConversaoPagina, 0) / channels.length;
+    const cpm = totalImpress > 0 ? (totalInvest / totalImpress) * 1000 : 0;
+    const ctr = totalImpress > 0 ? (totalCliques / totalImpress) * 100 : 0;
     const leadToMql = totalLeads > 0 ? (totalMql / totalLeads) * 100 : 0;
     const mqlToVenda = totalMql > 0 ? (totalVendas / totalMql) * 100 : 0;
 
@@ -275,38 +350,29 @@ export function useJornadaData(selectedMonth?: Date) {
       {
         key: 'cpm',
         label: 'CPM',
-        value: totalCliques > 0 ? (totalInvest / totalCliques) * 1000 : 0,
-        formattedValue: `R$ ${totalCliques > 0 ? ((totalInvest / totalCliques) * 1000).toFixed(2) : '0'}`,
+        value: cpm,
+        formattedValue: `R$ ${cpm.toFixed(2)}`,
         status: 'ok' as NodeStatus,
-        tooltip: 'Custo por mil impressões agregado',
+        tooltip: 'Custo por mil impressões = Investimento / Impressões × 1000',
         acoes: ['Revisar segmentação', 'Testar novos públicos'],
       },
       {
         key: 'ctrLink',
         label: 'CTR',
-        value: avgCtr,
-        formattedValue: `${avgCtr.toFixed(2)}%`,
-        status: getNodeStatus('ctrLink', avgCtr),
-        tooltip: 'Taxa de clique média entre canais',
+        value: ctr,
+        formattedValue: `${ctr.toFixed(2)}%`,
+        status: getNodeStatus('ctrLink', ctr),
+        tooltip: 'CTR = Cliques / Impressões × 100',
         acoes: ['Melhorar criativos', 'Testar headlines', 'A/B test de imagens'],
       },
       {
-        key: 'connectRate',
-        label: 'Connect Rate',
-        value: avgConnectRate,
-        formattedValue: `${avgConnectRate.toFixed(1)}%`,
-        status: getNodeStatus('connectRate', avgConnectRate),
-        tooltip: 'Sessões engajadas / Cliques',
-        acoes: ['Otimizar velocidade da LP', 'Melhorar congruência anúncio→LP'],
-      },
-      {
-        key: 'taxaConversaoPagina',
-        label: 'Conv. Página',
-        value: avgConvPagina,
-        formattedValue: `${avgConvPagina.toFixed(1)}%`,
-        status: getNodeStatus('taxaConversaoPagina', avgConvPagina),
-        tooltip: 'Leads / Sessões na landing page',
-        acoes: ['Otimizar formulário', 'Testar CTA', 'Social proof'],
+        key: 'lead',
+        label: 'Lead',
+        value: totalLeads,
+        formattedValue: totalLeads.toLocaleString('pt-BR'),
+        status: 'ok' as NodeStatus,
+        tooltip: 'Total de leads gerados (form nativo + landing page)',
+        acoes: ['Otimizar formulário nativo', 'Testar perguntas do form'],
       },
       {
         key: 'leadToMql',
@@ -314,7 +380,7 @@ export function useJornadaData(selectedMonth?: Date) {
         value: leadToMql,
         formattedValue: `${leadToMql.toFixed(1)}%`,
         status: getNodeStatus('leadToMql', leadToMql),
-        tooltip: 'Taxa de qualificação (call agendada / leads)',
+        tooltip: 'Taxa de qualificação = Call Agendada / Leads × 100',
         acoes: ['Melhorar script de qualificação', 'Speed to lead', 'Nurturing'],
       },
       {
@@ -323,7 +389,7 @@ export function useJornadaData(selectedMonth?: Date) {
         value: mqlToVenda,
         formattedValue: `${mqlToVenda.toFixed(1)}%`,
         status: getNodeStatus('taxaVenda', mqlToVenda),
-        tooltip: 'Vendas / MQL',
+        tooltip: 'Vendas / MQL × 100',
         acoes: ['Treinar closers', 'Revisar objeções', 'Follow-up estruturado'],
       },
     ];

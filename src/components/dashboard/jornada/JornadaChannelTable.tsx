@@ -15,8 +15,8 @@ import {
 } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { JORNADA_CHANNEL_COLORS, JORNADA_INDICATORS } from '@/hooks/useJornadaData';
-import type { JornadaChannel, JornadaChannelWeek, JornadaIndicator } from '@/types/jornada';
+import { JORNADA_CHANNEL_COLORS, getIndicatorsForChannel } from '@/hooks/useJornadaData';
+import type { JornadaChannel, JornadaIndicator } from '@/types/jornada';
 
 interface JornadaChannelTableProps {
   channel: JornadaChannel;
@@ -41,35 +41,33 @@ function formatValue(value: number, format: JornadaIndicator['format']): string 
   }
 }
 
-function getCellColor(value: number, indicator: JornadaIndicator): string {
+function getCellColor(value: number): string {
   if (value === 0) return 'text-muted-foreground';
-
-  // Cost metrics: lower is better
-  const costMetrics = ['cpm', 'custoClick', 'custoPorLead', 'cpmql', 'custoPorReuniao', 'cpa'];
-  // Rate metrics: higher is better
-  const rateMetrics = ['ctrLink', 'connectRate', 'taxaConversaoPagina', 'leadToMql', 'roas'];
-
-  if (costMetrics.includes(indicator.key)) {
-    return 'text-foreground'; // neutral for costs
-  }
-  if (rateMetrics.includes(indicator.key)) {
-    return 'text-foreground';
-  }
   return 'text-foreground';
 }
 
 export function JornadaChannelTable({ channel }: JornadaChannelTableProps) {
   const colors = JORNADA_CHANNEL_COLORS[channel.canal];
+  const indicators = useMemo(() => getIndicatorsForChannel(channel.channelType), [channel.channelType]);
 
   const weekHeaders = useMemo(() => {
     return channel.semanas.map((_, idx) => `S${idx + 1}`);
   }, [channel.semanas]);
 
+  const subtitle = channel.channelType === 'native-form'
+    ? 'Formulário Nativo'
+    : 'Landing Page';
+
   return (
     <div className={cn('rounded-xl border overflow-hidden', colors.border)}>
       {/* Channel Header */}
-      <div className={cn('px-4 py-3 font-display font-semibold text-sm', colors.bg, colors.text)}>
-        {channel.canal}
+      <div className={cn('px-4 py-3 flex items-center justify-between', colors.bg)}>
+        <span className={cn('font-display font-semibold text-sm', colors.text)}>
+          {channel.canal}
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+          {subtitle}
+        </span>
       </div>
 
       <TooltipProvider delayDuration={200}>
@@ -90,7 +88,7 @@ export function JornadaChannelTable({ channel }: JornadaChannelTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {JORNADA_INDICATORS.map((indicator, rowIdx) => (
+            {indicators.map((indicator, rowIdx) => (
               <TableRow
                 key={indicator.key}
                 className={cn(
@@ -118,7 +116,7 @@ export function JornadaChannelTable({ channel }: JornadaChannelTableProps) {
                       key={idx}
                       className={cn(
                         'text-center text-xs py-2 tabular-nums',
-                        getCellColor(value, indicator)
+                        getCellColor(value)
                       )}
                     >
                       {formatValue(value, indicator.format)}
@@ -128,7 +126,7 @@ export function JornadaChannelTable({ channel }: JornadaChannelTableProps) {
                 <TableCell
                   className={cn(
                     'text-center text-xs font-semibold py-2 tabular-nums border-l border-border',
-                    getCellColor(channel.mes[indicator.key] as number, indicator)
+                    getCellColor(channel.mes[indicator.key] as number)
                   )}
                 >
                   {formatValue(channel.mes[indicator.key] as number, indicator.format)}
