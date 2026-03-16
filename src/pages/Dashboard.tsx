@@ -22,6 +22,7 @@ import { CampaignTable } from '@/components/dashboard/CampaignTable';
 import { FunnelAnalysis } from '@/components/dashboard/FunnelAnalysis';
 import { CreativeAnalysis } from '@/components/dashboard/CreativeAnalysis';
 import { LTVAnalysis } from '@/components/dashboard/ltv/LTVAnalysis';
+import { JornadaAnalysis } from '@/components/dashboard/jornada/JornadaAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
@@ -351,7 +352,9 @@ function DashboardContent() {
                     ? 'Análise Funil'
                     : activeTab === 'criativos'
                       ? 'Análise Nano'
-                      : 'Análise LTV'}
+                      : activeTab === 'jornada'
+                        ? 'Nós da Jornada'
+                        : 'Análise LTV'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {activeTab === 'macro'
@@ -362,7 +365,9 @@ function DashboardContent() {
                     ? 'Funil de vendas completo com custo por etapa e segmentação por canal'
                     : activeTab === 'criativos'
                       ? 'Performance de criativos de vídeo e métricas de retenção'
-                      : 'Lifetime Value e análise de retenção de alunos'
+                      : activeTab === 'jornada'
+                        ? 'Diagnóstico por canal com indicadores semanais e análise de causa raiz'
+                        : 'Lifetime Value e análise de retenção de alunos'
               }
             </p>
           </div>
@@ -386,6 +391,7 @@ function DashboardContent() {
               />
             )}
             {activeTab === 'ltv' && <LTVAnalysis />}
+            {activeTab === 'jornada' && <JornadaAnalysis dateRange={filters.dateRange} />}
           </div>
         </main>
       </div>

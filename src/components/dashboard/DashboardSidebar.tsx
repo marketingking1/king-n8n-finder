@@ -6,6 +6,7 @@ import {
   Video,
   TrendingUp,
   Filter,
+  Route,
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -62,11 +63,17 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       icon: Video,
       onClick: () => onTabChange('criativos')
     },
-    { 
-      id: 'ltv', 
-      label: 'Análise LTV', 
+    {
+      id: 'ltv',
+      label: 'Análise LTV',
       icon: TrendingUp,
       onClick: () => onTabChange('ltv')
+    },
+    {
+      id: 'jornada',
+      label: 'Nós da Jornada',
+      icon: Route,
+      onClick: () => onTabChange('jornada')
     },
   ];
 
