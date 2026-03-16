@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useGoogleSheetsData } from './useGoogleSheetsData';
 import { useMacroData } from './useMacroData';
 import { useFunnelByChannel } from './useFunnelByChannel';
+import { useGoogleAnalyticsData, aggregateGAByWeeks } from './useGoogleAnalyticsData';
+import type { GADailyRow } from './useGoogleAnalyticsData';
 import { filterByDateRange } from '@/lib/googleSheets';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addWeeks, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -202,7 +204,10 @@ export function useJornadaData(selectedMonth?: Date) {
   const { current: macroMetrics, channelMetrics, isLoading: macroLoading } = useMacroData(dateRange);
   const { data: channelFunnelData, isLoading: funnelLoading } = useFunnelByChannel(dateRange, channelMetrics);
 
-  const isLoading = sheetsLoading || macroLoading || funnelLoading;
+  // Fetch Google Analytics data for Google Ads landing page metrics
+  const { data: gaData, isLoading: gaLoading } = useGoogleAnalyticsData(dateRange);
+
+  const isLoading = sheetsLoading || macroLoading || funnelLoading || gaLoading;
 
   // Build channel data with weekly breakdown
   const channels = useMemo<JornadaChannel[]>(() => {
@@ -239,6 +244,11 @@ export function useJornadaData(selectedMonth?: Date) {
     while (weeks.length < 4) {
       weeks.push({ start: monthEnd, end: monthEnd });
     }
+
+    // Aggregate GA data by week for Google Ads landing page metrics
+    const gaWeeklyData = gaData
+      ? aggregateGAByWeeks(gaData.rows, weeks)
+      : null;
 
     return channelNames.map(canalName => {
       // SOURCE OF TRUTH: channelMetrics from useMacroData (same as Macro/Micro tabs)
@@ -283,6 +293,14 @@ export function useJornadaData(selectedMonth?: Date) {
         const vendas = Math.round(totalVendas * proportion);
         const receita = totalReceita * proportion;
 
+        // GA4 landing page metrics — only for Google Ads
+        const isGoogleAds = canalName === 'Google Ads';
+        const gaWeek = isGoogleAds && gaWeeklyData ? gaWeeklyData[idx] : null;
+        const sessoes = gaWeek?.data.sessions ?? 0;
+        const sessoesEngajadas = gaWeek?.data.engagedSessions ?? 0;
+        const connectRate = cliques > 0 ? (sessoesEngajadas / cliques) * 100 : 0;
+        const taxaConversaoPagina = sessoes > 0 ? (leads / sessoes) * 100 : 0;
+
         return {
           semana: idx + 1,
           investimento,
@@ -292,11 +310,10 @@ export function useJornadaData(selectedMonth?: Date) {
           cliquesLink: cliques,
           custoClick: cliques > 0 ? investimento / cliques : 0,
           ctrLink: impressoes > 0 ? (cliques / impressoes) * 100 : 0,
-          // Landing page metrics — 0 for native-form channels, placeholder for Google until GA4
-          connectRate: 0,
-          sessoes: 0,
-          sessoesEngajadas: 0,
-          taxaConversaoPagina: 0,
+          connectRate: isGoogleAds ? connectRate : 0,
+          sessoes: isGoogleAds ? sessoes : 0,
+          sessoesEngajadas: isGoogleAds ? sessoesEngajadas : 0,
+          taxaConversaoPagina: isGoogleAds ? taxaConversaoPagina : 0,
           // Funnel metrics
           lead: leads,
           custoPorLead: leads > 0 ? investimento / leads : 0,
@@ -318,7 +335,7 @@ export function useJornadaData(selectedMonth?: Date) {
         mes: consolidateWeeks(semanas),
       };
     });
-  }, [sheetsData, channelMetrics, channelFunnelData, dateRange, month]);
+  }, [sheetsData, channelMetrics, channelFunnelData, gaData, dateRange, month]);
 
   // Build journey nodes — native form funnel (no page metrics)
   const nodes = useMemo<JornadaNode[]>(() => {
