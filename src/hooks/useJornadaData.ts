@@ -135,8 +135,8 @@ function consolidateWeeks(semanas: JornadaChannelWeek[]): JornadaChannelWeek {
   mes.cpm = mes.impressoes > 0 ? (mes.investimento / mes.impressoes) * 1000 : 0;
   mes.custoClick = mes.cliquesLink > 0 ? mes.investimento / mes.cliquesLink : 0;
   mes.ctrLink = mes.impressoes > 0 ? (mes.cliquesLink / mes.impressoes) * 100 : 0;
-  mes.connectRate = mes.cliquesLink > 0 ? (mes.sessoesEngajadas / mes.cliquesLink) * 100 : 0;
-  mes.taxaConversaoPagina = mes.sessoes > 0 ? (mes.lead / mes.sessoes) * 100 : 0;
+  mes.connectRate = Math.min(mes.cliquesLink > 0 ? (mes.sessoesEngajadas / mes.cliquesLink) * 100 : 0, 100);
+  mes.taxaConversaoPagina = Math.min(mes.sessoes > 0 ? (mes.lead / mes.sessoes) * 100 : 0, 100);
   mes.custoPorLead = mes.lead > 0 ? mes.investimento / mes.lead : 0;
   mes.leadToMql = mes.lead > 0 ? (mes.mql / mes.lead) * 100 : 0;
   mes.cpmql = mes.mql > 0 ? mes.investimento / mes.mql : 0;
@@ -239,7 +239,11 @@ export function useJornadaData(selectedMonth?: Date) {
       if (effectiveStart <= monthEnd) {
         weeks.push({ start: effectiveStart, end: effectiveEnd });
       }
-      if (weeks.length >= 4) break;
+      if (weeks.length >= 5) break;
+    }
+    // Ensure the last week extends to monthEnd to avoid losing end-of-month days
+    if (weeks.length > 0 && weeks[weeks.length - 1].end < monthEnd) {
+      weeks[weeks.length - 1].end = monthEnd;
     }
     while (weeks.length < 4) {
       weeks.push({ start: monthEnd, end: monthEnd });
@@ -298,8 +302,8 @@ export function useJornadaData(selectedMonth?: Date) {
         const gaWeek = isGoogleAds && gaWeeklyData ? gaWeeklyData[idx] : null;
         const sessoes = gaWeek?.data.sessions ?? 0;
         const sessoesEngajadas = gaWeek?.data.engagedSessions ?? 0;
-        const connectRate = cliques > 0 ? (sessoesEngajadas / cliques) * 100 : 0;
-        const taxaConversaoPagina = sessoes > 0 ? (leads / sessoes) * 100 : 0;
+        const connectRate = Math.min(cliques > 0 ? (sessoesEngajadas / cliques) * 100 : 0, 100);
+        const taxaConversaoPagina = Math.min(sessoes > 0 ? (leads / sessoes) * 100 : 0, 100);
 
         return {
           semana: idx + 1,
