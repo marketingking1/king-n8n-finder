@@ -42,7 +42,7 @@ async function fetchFunnelByChannel(dateRange: DateRange): Promise<RpcRow[]> {
   if (dateRange.from) params.p_from = toDateStr(dateRange.from);
   if (dateRange.to) params.p_to = toDateStr(dateRange.to);
 
-  const { data, error } = await supabase.rpc('get_funnel_by_channel', params);
+  const { data, error } = await (supabase.rpc as any)('get_funnel_by_channel', params);
   if (error) throw new Error(error.message);
   return (data as RpcRow[]) ?? [];
 }
