@@ -58,6 +58,11 @@ export interface AggregatedCreative {
   avgCpl: number;              // totalSpend / totalLeads
   totalDays: number;           // Dias com dados
   dateRange: { start: Date; end: Date };
+  // Funnel metrics (distributed proportionally from channel data)
+  mql: number;
+  callRealizada: number;
+  vendas: number;
+  cpa: number;
 }
 
 // KPIs consolidados do período
@@ -73,4 +78,9 @@ export interface CreativeKPIs {
   avgCpl: number;
   avgCpm: number;
   avgCtr: number;
+  // Funnel KPIs
+  totalMql: number;
+  totalCallRealizada: number;
+  totalVendas: number;
+  avgCpa: number;
 }

@@ -129,6 +129,10 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
       'Leads',
       'CPL',
       'CPM',
+      'MQL',
+      'Call Realizada',
+      'Vendas',
+      'CPA',
     ];
 
     const rows = filteredAndSortedData.map((item) => [
@@ -145,6 +149,10 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
       item.totalLeads,
       item.avgCpl.toFixed(2),
       item.avgCpm.toFixed(2),
+      item.mql,
+      item.callRealizada,
+      item.vendas,
+      item.vendas > 0 ? item.cpa.toFixed(2) : '',
     ]);
 
     const csvContent = [
@@ -296,12 +304,48 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
                     <SortIcon columnKey="avgCpl" />
                   </button>
                 </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('mql')}
+                    className="flex items-center justify-end text-xs font-medium ml-auto"
+                  >
+                    MQL
+                    <SortIcon columnKey="mql" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('callRealizada')}
+                    className="flex items-center justify-end text-xs font-medium ml-auto"
+                  >
+                    Call Real.
+                    <SortIcon columnKey="callRealizada" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('vendas')}
+                    className="flex items-center justify-end text-xs font-medium ml-auto"
+                  >
+                    Vendas
+                    <SortIcon columnKey="vendas" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('cpa')}
+                    className="flex items-center justify-end text-xs font-medium ml-auto"
+                  >
+                    CPA
+                    <SortIcon columnKey="cpa" />
+                  </button>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredAndSortedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     Nenhum criativo encontrado
                   </TableCell>
                 </TableRow>
@@ -354,6 +398,18 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
                     </TableCell>
                     <TableCell className={cn('text-right text-sm font-medium', getCplColor(item.avgCpl))}>
                       {item.totalLeads > 0 ? formatCurrency(item.avgCpl) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium">
+                      {item.mql > 0 ? formatNumber(item.mql) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium">
+                      {item.callRealizada > 0 ? formatNumber(item.callRealizada) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium text-emerald-400">
+                      {item.vendas > 0 ? formatNumber(item.vendas) : '-'}
+                    </TableCell>
+                    <TableCell className={cn('text-right text-sm font-medium', item.cpa === 0 ? 'text-muted-foreground' : item.cpa <= 500 ? 'text-success' : item.cpa <= 800 ? 'text-warning' : 'text-destructive')}>
+                      {item.vendas > 0 ? formatCurrency(item.cpa) : '-'}
                     </TableCell>
                   </TableRow>
                 ))

@@ -10,6 +10,7 @@ import type { JornadaNode, NodeStatus } from '@/types/jornada';
 
 interface JornadaNodeMatrixProps {
   nodes: JornadaNode[];
+  comparisonNodes?: JornadaNode[];
 }
 
 const STATUS_STYLES: Record<NodeStatus, { bg: string; border: string; text: string; dot: string }> = {
@@ -33,7 +34,7 @@ const STATUS_STYLES: Record<NodeStatus, { bg: string; border: string; text: stri
   },
 };
 
-export function JornadaNodeMatrix({ nodes }: JornadaNodeMatrixProps) {
+export function JornadaNodeMatrix({ nodes, comparisonNodes }: JornadaNodeMatrixProps) {
   if (nodes.length === 0) return null;
 
   return (
@@ -51,6 +52,10 @@ export function JornadaNodeMatrix({ nodes }: JornadaNodeMatrixProps) {
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {nodes.map((node, idx) => {
             const style = STATUS_STYLES[node.status];
+            const compNode = comparisonNodes?.[idx];
+            const delta = compNode && compNode.value !== 0
+              ? ((node.value - compNode.value) / compNode.value) * 100
+              : null;
             return (
               <div key={node.key} className="flex items-center gap-2 flex-shrink-0">
                 <Tooltip>
@@ -73,6 +78,15 @@ export function JornadaNodeMatrix({ nodes }: JornadaNodeMatrixProps) {
                       <span className={cn('text-lg font-display font-bold tabular-nums', style.text)}>
                         {node.formattedValue}
                       </span>
+                      {/* Delta */}
+                      {delta !== null && (
+                        <span className={cn(
+                          'text-[10px] font-medium tabular-nums mt-0.5',
+                          delta >= 0 ? 'text-emerald-400' : 'text-red-400'
+                        )}>
+                          {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                        </span>
+                      )}
                       {/* Label */}
                       <span className="text-[11px] text-muted-foreground mt-0.5 text-center">
                         {node.label}

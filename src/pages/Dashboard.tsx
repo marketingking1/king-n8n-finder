@@ -385,9 +385,10 @@ function DashboardContent() {
               />
             )}
             {activeTab === 'criativos' && (
-              <CreativeAnalysis 
-                dateRange={filters.dateRange} 
+              <CreativeAnalysis
+                dateRange={filters.dateRange}
                 campanhas={filters.campanhas}
+                funnelData={channelFunnelData}
               />
             )}
             {activeTab === 'ltv' && <LTVAnalysis />}

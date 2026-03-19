@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { DollarSign, Eye, Zap, Users, Target, BarChart3, Percent, Play } from 'lucide-react';
+import { DollarSign, Eye, Zap, Users, Target, BarChart3, Percent, Play, Phone, ShoppingCart, PhoneCall } from 'lucide-react';
 import { CreativeKPIs } from '@/types/creative';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
@@ -108,7 +108,7 @@ export function CreativeKPICards({ kpis, isLoading }: CreativeKPICardsProps) {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 lg:gap-4">
       <KPICard
         title="Investimento Total"
         value={formatCurrency(kpis.totalInvestimento)}
@@ -171,6 +171,31 @@ export function CreativeKPICards({ kpis, isLoading }: CreativeKPICardsProps) {
         value={formatPercent(kpis.avgCtr)}
         icon={<Percent className="h-4 w-4" />}
         index={9}
+      />
+      <KPICard
+        title="MQL (Call Agendada)"
+        value={formatNumber(kpis.totalMql)}
+        icon={<Phone className="h-4 w-4" />}
+        index={10}
+      />
+      <KPICard
+        title="Call Realizada"
+        value={formatNumber(kpis.totalCallRealizada)}
+        icon={<PhoneCall className="h-4 w-4" />}
+        index={11}
+      />
+      <KPICard
+        title="Vendas"
+        value={formatNumber(kpis.totalVendas)}
+        icon={<ShoppingCart className="h-4 w-4" />}
+        index={12}
+      />
+      <KPICard
+        title="CPA"
+        value={formatCurrency(kpis.avgCpa)}
+        icon={<Target className="h-4 w-4" />}
+        colorClass={kpis.avgCpa === 0 ? 'text-muted-foreground' : kpis.avgCpa <= 500 ? 'text-success' : kpis.avgCpa <= 800 ? 'text-warning' : 'text-destructive'}
+        index={13}
       />
     </div>
   );

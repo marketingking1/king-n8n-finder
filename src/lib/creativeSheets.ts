@@ -199,6 +199,11 @@ export const aggregateByCreative = (rows: VideoCreativeRow[]): AggregatedCreativ
         start: excelSerialToDate(dates[0]),
         end: excelSerialToDate(dates[dates.length - 1]),
       },
+      // Funnel metrics — enriched later by CreativeAnalysis
+      mql: 0,
+      callRealizada: 0,
+      vendas: 0,
+      cpa: 0,
     };
   }).sort((a, b) => b.totalSpend - a.totalSpend);
 };
@@ -237,6 +242,11 @@ export const calculateCreativeKPIs = (rows: VideoCreativeRow[]): CreativeKPIs =>
     avgCpl: safeDivide(totalSpend, totalLeads),
     avgCpm: safeDivide(totalSpend, totalImpressions) * 1000,
     avgCtr: weightedAvg(r => r.ctr),
+    // Funnel KPIs — enriched later by CreativeAnalysis
+    totalMql: 0,
+    totalCallRealizada: 0,
+    totalVendas: 0,
+    avgCpa: 0,
   };
 };
 
