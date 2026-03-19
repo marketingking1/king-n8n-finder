@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { DailyJourneyData, JourneyNode, CompareMode } from '../types';
 
 function aggregateNodes(data: DailyJourneyData[]): JourneyNode[] {
@@ -23,121 +23,232 @@ function aggregateNodes(data: DailyJourneyData[]): JourneyNode[] {
   });
 }
 
-function formatDate(dateStr: string) {
+function formatDateBR(dateStr: string) {
   const [y, m, d] = dateStr.split('-');
-  return `${d}/${m}`;
+  return `${d}/${m}/${y}`;
+}
+
+function shiftDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function shiftMonth(dateStr: string, months: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().split('T')[0];
+}
+
+function shiftYear(dateStr: string, years: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setFullYear(d.getFullYear() + years);
+  return d.toISOString().split('T')[0];
 }
 
 interface Props {
   dailyData: DailyJourneyData[];
+  globalPeriod?: string;
+  globalCompareMode?: CompareMode;
 }
 
-export function JourneyNodes({ dailyData }: Props) {
-  const [period, setPeriod] = useState<'7d' | '14d' | '30d'>('7d');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+export function JourneyNodes({ dailyData, globalPeriod, globalCompareMode }: Props) {
+  const minDate = dailyData.length > 0 ? dailyData[0].date : '';
+  const maxDate = dailyData.length > 0 ? dailyData[dailyData.length - 1].date : '';
+
+  const [localPeriod, setLocalPeriod] = useState<'7d' | '14d' | '30d' | 'custom'>('7d');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [compareMode, setCompareMode] = useState<CompareMode>('none');
 
-  const filteredData = useMemo(() => {
-    if (selectedDate) {
-      return dailyData.filter((d) => d.date === selectedDate);
+  // Sync from global props
+  useEffect(() => {
+    if (globalCompareMode !== undefined) {
+      setCompareMode(globalCompareMode);
     }
-    const days = period === '7d' ? 7 : period === '14d' ? 14 : 30;
-    return dailyData.slice(-days);
-  }, [dailyData, period, selectedDate]);
+  }, [globalCompareMode]);
 
+  useEffect(() => {
+    if (!globalPeriod) return;
+    if (globalPeriod === '7d' || globalPeriod === '14d' || globalPeriod === '30d') {
+      setLocalPeriod(globalPeriod);
+      setStartDate('');
+      setEndDate('');
+    } else if (globalPeriod === '90d' && maxDate) {
+      setStartDate(shiftDate(maxDate, -89));
+      setEndDate(maxDate);
+      setLocalPeriod('custom');
+    }
+  }, [globalPeriod, maxDate]);
+
+  // Filter data
+  const filteredData = useMemo(() => {
+    if (localPeriod === 'custom' && startDate && endDate) {
+      return dailyData.filter((d) => d.date >= startDate && d.date <= endDate);
+    }
+    const days = localPeriod === '7d' ? 7 : localPeriod === '14d' ? 14 : 30;
+    return dailyData.slice(-days);
+  }, [dailyData, localPeriod, startDate, endDate]);
+
+  // Comparison data
   const comparisonData = useMemo(() => {
-    if (compareMode === 'none') return null;
-    const currentDays = filteredData.length;
+    if (compareMode === 'none' || filteredData.length === 0) return null;
+
+    const currentStart = filteredData[0].date;
+    const currentEnd = filteredData[filteredData.length - 1].date;
+    const dayCount = filteredData.length;
+
+    let compStart: string;
+    let compEnd: string;
+
     if (compareMode === 'previous') {
-      const endIdx = dailyData.indexOf(filteredData[0]);
-      if (endIdx <= 0) return null;
-      const startIdx = Math.max(0, endIdx - currentDays);
-      return dailyData.slice(startIdx, endIdx);
+      compEnd = shiftDate(currentStart, -1);
+      compStart = shiftDate(currentStart, -dayCount);
+    } else if (compareMode === 'same-last-month') {
+      compStart = shiftMonth(currentStart, -1);
+      compEnd = shiftMonth(currentEnd, -1);
+    } else if (compareMode === 'same-last-year') {
+      compStart = shiftYear(currentStart, -1);
+      compEnd = shiftYear(currentEnd, -1);
+    } else {
+      return null;
     }
-    if (compareMode === 'same-last-month') {
-      return filteredData.map((d) => {
-        const date = new Date(d.date);
-        date.setMonth(date.getMonth() - 1);
-        const targetDate = date.toISOString().split('T')[0];
-        return dailyData.find((x) => x.date === targetDate);
-      }).filter(Boolean) as DailyJourneyData[];
-    }
-    if (compareMode === 'same-last-year') {
-      return filteredData.map((d) => {
-        const date = new Date(d.date);
-        date.setFullYear(date.getFullYear() - 1);
-        const targetDate = date.toISOString().split('T')[0];
-        return dailyData.find((x) => x.date === targetDate);
-      }).filter(Boolean) as DailyJourneyData[];
-    }
-    return null;
+
+    const result = dailyData.filter((d) => d.date >= compStart && d.date <= compEnd);
+    return result.length > 0 ? result : null;
   }, [compareMode, filteredData, dailyData]);
 
   const nodes = aggregateNodes(filteredData);
   const compNodes = comparisonData ? aggregateNodes(comparisonData) : null;
-  const maxTotal = Math.max(...nodes.map((n) => n.total), 1);
+  const maxTotal = Math.max(...nodes.map((n) => n.total), ...(compNodes?.map((n) => n.total) || []), 1);
 
-  const availableDates = dailyData.map((d) => d.date);
+  const handlePeriodClick = (p: '7d' | '14d' | '30d') => {
+    setLocalPeriod(p);
+    setStartDate('');
+    setEndDate('');
+  };
+
+  const handleStartDate = (val: string) => {
+    setStartDate(val);
+    if (val && endDate) setLocalPeriod('custom');
+  };
+
+  const handleEndDate = (val: string) => {
+    setEndDate(val);
+    if (startDate && val) setLocalPeriod('custom');
+  };
+
+  const clearDates = () => {
+    setStartDate('');
+    setEndDate('');
+    setLocalPeriod('7d');
+  };
+
+  // Filter label
+  const filterLabel = (() => {
+    if (localPeriod === 'custom' && startDate && endDate) {
+      return `${formatDateBR(startDate)} — ${formatDateBR(endDate)} (${filteredData.length} dias)`;
+    }
+    const d = localPeriod === '7d' ? 7 : localPeriod === '14d' ? 14 : 30;
+    return `Últimos ${d} dias`;
+  })();
+
+  const compareLabels: Record<CompareMode, string> = {
+    none: '',
+    previous: 'período anterior',
+    'same-last-month': 'mesmo período mês passado',
+    'same-last-year': 'mesmo período ano passado',
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h3 className="text-sm font-semibold text-gray-700">Análise de Nós da Jornada</h3>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Daily date picker */}
-          <select
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              if (e.target.value) setPeriod('7d');
-            }}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 text-gray-700"
-          >
-            <option value="">Período agregado</option>
-            {availableDates.map((d) => (
-              <option key={d} value={d}>
-                {formatDate(d)} (diário)
-              </option>
-            ))}
-          </select>
-
-          {/* Period filter (disabled when daily selected) */}
-          {!selectedDate && (
-            <div className="flex rounded-md overflow-hidden border border-gray-300">
-              {(['7d', '14d', '30d'] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`text-xs px-3 py-1.5 ${period === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  {p === '7d' ? '7 dias' : p === '14d' ? '14 dias' : '30 dias'}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Comparison filter */}
-          <select
-            value={compareMode}
-            onChange={(e) => setCompareMode(e.target.value as CompareMode)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 text-gray-700"
-          >
-            <option value="none">Sem comparação</option>
-            <option value="previous">vs Período anterior</option>
-            <option value="same-last-month">vs Mesmo período mês passado</option>
-            <option value="same-last-year">vs Mesmo período ano passado</option>
-          </select>
-        </div>
       </div>
 
-      {/* Label showing active filter */}
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        {/* Date range */}
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-gray-500">De:</label>
+          <input
+            type="date"
+            value={startDate}
+            min={minDate}
+            max={endDate || maxDate}
+            onChange={(e) => handleStartDate(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 text-gray-700"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-gray-500">Até:</label>
+          <input
+            type="date"
+            value={endDate}
+            min={startDate || minDate}
+            max={maxDate}
+            onChange={(e) => handleEndDate(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 text-gray-700"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="h-5 w-px bg-gray-200" />
+
+        {/* Quick period buttons */}
+        <div className="flex rounded-md overflow-hidden border border-gray-300">
+          {(['7d', '14d', '30d'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => handlePeriodClick(p)}
+              className={`text-xs px-3 py-1.5 transition-colors ${
+                localPeriod === p && !startDate
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {p === '7d' ? '7 dias' : p === '14d' ? '14 dias' : '30 dias'}
+            </button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="h-5 w-px bg-gray-200" />
+
+        {/* Comparison */}
+        <select
+          value={compareMode}
+          onChange={(e) => setCompareMode(e.target.value as CompareMode)}
+          className="text-xs border border-gray-300 rounded-md px-2 py-1.5 text-gray-700"
+        >
+          <option value="none">Sem comparação</option>
+          <option value="previous">vs Período anterior</option>
+          <option value="same-last-month">vs Mês anterior</option>
+          <option value="same-last-year">vs Ano anterior</option>
+        </select>
+
+        {/* Clear dates */}
+        {startDate && (
+          <button
+            onClick={clearDates}
+            className="text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            Limpar datas
+          </button>
+        )}
+      </div>
+
+      {/* Active filter info */}
       <p className="text-xs text-gray-400 mb-4">
-        {selectedDate
-          ? `Dia: ${formatDate(selectedDate)}`
-          : `Últimos ${period === '7d' ? '7' : period === '14d' ? '14' : '30'} dias`}
+        {filterLabel}
         {compareMode !== 'none' && compNodes && (
           <span className="ml-2 text-blue-500">
-            | Comparando com {compareMode === 'previous' ? 'período anterior' : compareMode === 'same-last-month' ? 'mesmo período mês passado' : 'mesmo período ano passado'}
+            | Comparando com {compareLabels[compareMode]} ({comparisonData?.length} dias)
+          </span>
+        )}
+        {compareMode !== 'none' && !compNodes && (
+          <span className="ml-2 text-amber-500">
+            | Sem dados disponíveis para comparação
           </span>
         )}
       </p>
@@ -163,7 +274,6 @@ export function JourneyNodes({ dailyData }: Props) {
                   >
                     <span className="text-xs text-white font-medium">{node.total}</span>
                   </div>
-                  {/* Comparison bar overlay */}
                   {compNode && (
                     <div
                       className="absolute top-0 left-0 h-full rounded-full border-2 border-dashed border-gray-400 opacity-40"
@@ -202,6 +312,20 @@ export function JourneyNodes({ dailyData }: Props) {
           );
         })}
       </div>
+
+      {/* Comparison legend */}
+      {compNodes && (
+        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-2 rounded-full bg-blue-500" />
+            <span className="text-[10px] text-gray-500">Período atual</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-2 rounded-full border-2 border-dashed border-gray-400 opacity-40" />
+            <span className="text-[10px] text-gray-500">Período de comparação</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

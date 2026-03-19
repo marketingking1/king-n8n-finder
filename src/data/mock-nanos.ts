@@ -23,10 +23,10 @@ function generateDailyNodes(dateStr: string, multiplier: number): DailyJourneyDa
   return { date: dateStr, nodes: base };
 }
 
-// Generate 30 days of daily journey data
-export const dailyJourneyData: DailyJourneyData[] = Array.from({ length: 30 }, (_, i) => {
+// Generate 90 days of daily journey data (for comparison support)
+export const dailyJourneyData: DailyJourneyData[] = Array.from({ length: 90 }, (_, i) => {
   const date = new Date(2026, 2, 19); // March 19, 2026
-  date.setDate(date.getDate() - (29 - i));
+  date.setDate(date.getDate() - (89 - i));
   const dateStr = date.toISOString().split('T')[0];
   // Slight daily variation
   const dayOfWeek = date.getDay();

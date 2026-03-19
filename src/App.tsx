@@ -10,11 +10,15 @@ import { NanosTable } from './components/NanosTable';
 import { JourneyNodes } from './components/JourneyNodes';
 import { kpis, funnel, leadSources, topSellers, monthlyRevenue, recentDeals } from './data/mock-kommo';
 import { nanoCreatives, dailyJourneyData } from './data/mock-nanos';
+import type { CompareMode } from './types';
 
 type Tab = 'visao-geral' | 'analise-nanos';
+type Period = '7d' | '14d' | '30d' | '90d';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('visao-geral');
+  const [period, setPeriod] = useState<Period>('30d');
+  const [compareMode, setCompareMode] = useState<CompareMode>('none');
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'visao-geral', label: 'Visão Geral' },
@@ -24,20 +28,37 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard de Vendas CRM</h1>
-          <p className="text-sm text-gray-500">Dados KOMMO - Atualizado em tempo real</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select className="text-sm border border-gray-300 rounded-md px-3 py-1.5 text-gray-700">
-            <option>Últimos 30 dias</option>
-            <option>Últimos 90 dias</option>
-            <option>Este ano</option>
-          </select>
-          <button className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700">
-            Atualizar
-          </button>
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Dashboard de Vendas CRM</h1>
+            <p className="text-sm text-gray-500">Dados KOMMO - Atualizado em tempo real</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as Period)}
+              className="text-sm border border-gray-300 rounded-md px-3 py-1.5 text-gray-700"
+            >
+              <option value="7d">Últimos 7 dias</option>
+              <option value="14d">Últimos 14 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="90d">Últimos 90 dias</option>
+            </select>
+            <select
+              value={compareMode}
+              onChange={(e) => setCompareMode(e.target.value as CompareMode)}
+              className="text-sm border border-gray-300 rounded-md px-3 py-1.5 text-gray-700"
+            >
+              <option value="none">Sem comparação</option>
+              <option value="previous">vs Período anterior</option>
+              <option value="same-last-month">vs Mês anterior</option>
+              <option value="same-last-year">vs Ano anterior</option>
+            </select>
+            <button className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700">
+              Atualizar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -96,7 +117,11 @@ export default function App() {
             <NanosTable creatives={nanoCreatives} />
 
             {/* Análise de nós da jornada com filtro diário e comparação */}
-            <JourneyNodes dailyData={dailyJourneyData} />
+            <JourneyNodes
+              dailyData={dailyJourneyData}
+              globalPeriod={period}
+              globalCompareMode={compareMode}
+            />
           </>
         )}
       </main>
