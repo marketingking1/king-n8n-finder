@@ -285,7 +285,7 @@ export function useJornadaData(selectedMonth?: Date) {
 
         // Weekly proportion based on raw row distribution
         const weekRowInvest = weekRows.reduce((s, r) => s + r.investimento, 0);
-        const proportion = rowTotalInvest > 0 ? weekRowInvest / rowTotalInvest : 0.25;
+        const proportion = rowTotalInvest > 0 ? weekRowInvest / rowTotalInvest : 1 / weeks.length;
 
         // Distribute authoritative totals proportionally
         const investimento = totalInvest * proportion;

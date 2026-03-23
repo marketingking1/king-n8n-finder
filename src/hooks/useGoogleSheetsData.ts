@@ -13,15 +13,12 @@ export function useGoogleSheetsData() {
   return useQuery<GoogleSheetsData>({
     queryKey: ['google-sheets-data'],
     queryFn: fetchGoogleSheetsData,
-    // Always prefer the source of truth (Sheets). Any cache should be short-lived.
-    staleTime: 0,
-    gcTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    // Periodic revalidation to keep dashboard "real-time".
-    refetchInterval: 60 * 1000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 5 * 60 * 1000,
     retry: 2,
   });
 }

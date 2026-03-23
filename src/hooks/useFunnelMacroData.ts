@@ -42,7 +42,11 @@ async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Prom
   const allPlatRows: { atualizacao: string | null }[] = [];
   let from = 0;
 
-  while (true) {
+  // Safety limit to prevent infinite loops (max 50 pages = 50k rows)
+  const MAX_PAGES = 50;
+  let page = 0;
+
+  while (page < MAX_PAGES) {
     let platQuery = supabase
       .from('Dados_Agendamento_Plataforma')
       .select('atualizacao')
@@ -58,11 +62,12 @@ async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Prom
     }
 
     const { data, error } = await platQuery;
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(`Pagination error at offset ${from}: ${error.message}`);
     if (!data || data.length === 0) break;
     allPlatRows.push(...data);
     if (data.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
+    page++;
   }
 
   // Call agendada = every row in platform table
