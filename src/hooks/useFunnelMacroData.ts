@@ -32,35 +32,43 @@ async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Prom
     leadsQuery = leadsQuery.lte('created_at', endOfDay(dateRange.to).toISOString());
   }
 
-  // Fetch platform data for calls
-  let platQuery = supabase
-    .from('Dados_Agendamento_Plataforma')
-    .select('atualizacao')
-    .not('vendedor', 'is', null)
-    .not('dataAulaExperimental', 'is', null);
-
-  if (dateRange.from) {
-    platQuery = platQuery.gte('dataAulaExperimental', toDateStr(dateRange.from));
-  }
-  if (dateRange.to) {
-    platQuery = platQuery.lte('dataAulaExperimental', toDateStr(dateRange.to));
-  }
-
-  const [leadsResult, platResult] = await Promise.all([
-    leadsQuery,
-    platQuery,
-  ]);
-
+  // Fetch leads count
+  const leadsResult = await leadsQuery;
   if (leadsResult.error) throw new Error(leadsResult.error.message);
-  if (platResult.error) throw new Error(platResult.error.message);
-
   const leads = leadsResult.count ?? 0;
+
+  // Fetch ALL platform rows with pagination (Supabase default limit = 1000)
+  const PAGE_SIZE = 1000;
+  const allPlatRows: { atualizacao: string | null }[] = [];
+  let from = 0;
+
+  while (true) {
+    let platQuery = supabase
+      .from('Dados_Agendamento_Plataforma')
+      .select('atualizacao')
+      .not('vendedor', 'is', null)
+      .not('dataAulaExperimental', 'is', null)
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (dateRange.from) {
+      platQuery = platQuery.gte('dataAulaExperimental', toDateStr(dateRange.from));
+    }
+    if (dateRange.to) {
+      platQuery = platQuery.lte('dataAulaExperimental', toDateStr(dateRange.to));
+    }
+
+    const { data, error } = await platQuery;
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    allPlatRows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
 
   // Call agendada = every row in platform table
   // Call realizada = PRESENCA or FECHADO
-  const platRows = platResult.data ?? [];
-  const callAgendada = platRows.length;
-  const callRealizada = platRows.filter(r => {
+  const callAgendada = allPlatRows.length;
+  const callRealizada = allPlatRows.filter(r => {
     const status = (r.atualizacao ?? '').toUpperCase();
     return status === 'PRESENCA' || status === 'FECHADO';
   }).length;
