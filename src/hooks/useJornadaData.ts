@@ -5,7 +5,7 @@ import { useFunnelByChannel } from './useFunnelByChannel';
 import { useGoogleAnalyticsData, aggregateGAByWeeks } from './useGoogleAnalyticsData';
 import type { GADailyRow } from './useGoogleAnalyticsData';
 import { filterByDateRange } from '@/lib/googleSheets';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addWeeks, isWithinInterval, format } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addWeeks, isWithinInterval, format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { JornadaChannel, JornadaChannelWeek, JornadaNode, NodeStatus, JornadaIndicator, ChannelType } from '@/types/jornada';
 import type { DateRange, ChannelMetrics } from '@/types/dashboard';
@@ -279,7 +279,8 @@ export function useJornadaData(selectedMonth?: Date) {
 
       const semanas: JornadaChannelWeek[] = weeks.map((week, idx) => {
         const weekRows = rows.filter(r => {
-          const d = new Date(r.data);
+          // Use parseISO (local time) instead of new Date() (UTC) to avoid off-by-one in UTC-3
+          const d = parseISO(r.data);
           return isWithinInterval(d, { start: week.start, end: week.end });
         });
 
