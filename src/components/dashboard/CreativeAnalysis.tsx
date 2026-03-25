@@ -74,12 +74,13 @@ function enrichWithFunnelData(
     const totalChannelLeads = creativesInChannel.reduce((s, c) => s + c.totalLeads, 0);
     const leadShare = totalChannelLeads > 0 ? creative.totalLeads / totalChannelLeads : 1 / creativesInChannel.length;
 
-    const mql = Math.round(funnel.callAgendada * leadShare);
+    const callAgendada = Math.round(funnel.callAgendada * leadShare);
     const callRealizada = Math.round(funnel.callRealizada * leadShare);
     const vendas = Math.round(funnel.venda * leadShare);
     const cpa = vendas > 0 ? creative.totalSpend / vendas : 0;
+    const custoMql = callAgendada > 0 ? creative.totalSpend / callAgendada : 0;
 
-    return { ...creative, mql, callRealizada, vendas, cpa };
+    return { ...creative, mql: callAgendada, callAgendada, callRealizada, vendas, cpa, custoMql };
   });
 }
 
@@ -144,8 +145,7 @@ function enrichKPIs(kpis: CreativeKPIs | null, enrichedCreatives: AggregatedCrea
   const totalVendas = enrichedCreatives.reduce((s, c) => s + c.vendas, 0);
   const totalCallAgendada = enrichedCreatives.reduce((s, c) => s + c.callAgendada, 0);
   const avgCpa = totalVendas > 0 ? kpis.totalInvestimento / totalVendas : 0;
-  const totalMqls = enrichedCreatives.reduce((s, c) => s + c.mql, 0);
-  const avgCustoMql = totalMqls > 0 ? kpis.totalInvestimento / totalMqls : 0;
+  const avgCustoMql = totalMql > 0 ? kpis.totalInvestimento / totalMql : 0;
   return { ...kpis, totalMql, totalCallRealizada, totalVendas, avgCpa, totalCallAgendada, avgCustoMql };
 }
 
