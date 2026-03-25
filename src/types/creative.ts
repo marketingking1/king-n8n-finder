@@ -37,6 +37,32 @@ export interface DerivedMetrics {
   clicks: number;            // ctr × impressions / 100
 }
 
+// Classificação de funil por frequência diária
+export type FunnelStage = 'tofu' | 'mofu' | 'bofu';
+
+export const FUNNEL_STAGE_CONFIG: Record<FunnelStage, { label: string; color: string }> = {
+  tofu: { label: 'ToFu', color: '#3b82f6' },
+  mofu: { label: 'MoFu', color: '#f59e0b' },
+  bofu: { label: 'BoFu', color: '#22c55e' },
+};
+
+// Dados de enrichment vindos do Supabase ad_performance
+export interface SupabaseEnrichmentData {
+  adName: string;
+  thumbnailUrl: string | null;
+  videoUrl: string | null;
+  transcription: string | null;
+  avgFrequency: number;
+  funnelStage: FunnelStage;
+  totalLeadsCrm: number;
+  mqls: number;
+  closedWon: number;
+  callAgendada: number;
+  callRealizada: number;
+  contrato: number;
+  spend: number;
+}
+
 // Criativo agregado - dados consolidados por criativo (across dates)
 export interface AggregatedCreative {
   ads: string;
@@ -63,6 +89,17 @@ export interface AggregatedCreative {
   callRealizada: number;
   vendas: number;
   cpa: number;
+  // Supabase enrichment fields
+  thumbnailUrl: string | null;
+  videoUrl: string | null;
+  transcription: string | null;
+  funnelStage: FunnelStage | null;
+  custoMql: number;
+  callAgendada: number;
+  totalLeadsCrm: number;
+  contrato: number;
+  analysis: string;
+  hasSupabaseData: boolean;
 }
 
 // KPIs consolidados do período
@@ -83,4 +120,7 @@ export interface CreativeKPIs {
   totalCallRealizada: number;
   totalVendas: number;
   avgCpa: number;
+  // Supabase enrichment KPIs
+  totalCallAgendada: number;
+  avgCustoMql: number;
 }

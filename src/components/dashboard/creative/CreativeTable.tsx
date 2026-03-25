@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AggregatedCreative } from '@/types/creative';
+import { AggregatedCreative, FUNNEL_STAGE_CONFIG } from '@/types/creative';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { ArrowUpDown, ArrowUp, ArrowDown, Search, Download } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Search, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { CreativeExpandedDetail } from './CreativeExpandedDetail';
 
 interface CreativeTableProps {
   data: AggregatedCreative[];
@@ -65,6 +67,7 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('totalSpend');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedAd, setExpandedAd] = useState<string | null>(null);
 
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
@@ -116,23 +119,10 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
 
   const exportToCSV = () => {
     const headers = [
-      'Criativo',
-      'Campanha',
-      'Dias Ativos',
-      'Investimento',
-      'Impressões',
-      'Hook Rate',
-      'Hold Rate',
-      'Completion Rate',
-      'Watch Time',
-      'CTR',
-      'Leads',
-      'CPL',
-      'CPM',
-      'MQL',
-      'Call Realizada',
-      'Vendas',
-      'CPA',
+      'Criativo','Campanha','Dias Ativos','Investimento','Impressões',
+      'Hook Rate','Hold Rate','Completion Rate','Watch Time','CTR',
+      'Leads','CPL','CPM','MQL','Custo MQL','Calls Agendadas',
+      'Call Realizada','Vendas','CPA','Funil',
     ];
 
     const rows = filteredAndSortedData.map((item) => [
@@ -150,9 +140,12 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
       item.avgCpl.toFixed(2),
       item.avgCpm.toFixed(2),
       item.mql,
+      item.custoMql > 0 ? item.custoMql.toFixed(2) : '',
+      item.callAgendada,
       item.callRealizada,
       item.vendas,
       item.vendas > 0 ? item.cpa.toFixed(2) : '',
+      item.funnelStage || '',
     ]);
 
     const csvContent = [
@@ -333,6 +326,24 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
                 </TableHead>
                 <TableHead className="text-right">
                   <button
+                    onClick={() => handleSort('callAgendada')}
+                    className="flex items-center justify-end text-xs font-medium ml-auto"
+                  >
+                    Calls Ag.
+                    <SortIcon columnKey="callAgendada" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('custoMql')}
+                    className="flex items-center justify-end text-xs font-medium ml-auto"
+                  >
+                    C. MQL
+                    <SortIcon columnKey="custoMql" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
                     onClick={() => handleSort('cpa')}
                     className="flex items-center justify-end text-xs font-medium ml-auto"
                   >
@@ -340,78 +351,124 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
                     <SortIcon columnKey="cpa" />
                   </button>
                 </TableHead>
+                <TableHead className="text-center text-xs">Funil</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredAndSortedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
                     Nenhum criativo encontrado
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAndSortedData.map((item) => (
-                  <TableRow key={item.ads} className="hover:bg-muted/30">
-                    <TableCell className="sticky left-0 bg-card z-10 font-medium text-sm">
-                      <span className="line-clamp-2">{item.displayName}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {item.campanhas.map((camp) => (
+                  <>
+                    <TableRow
+                      key={item.ads}
+                      className="hover:bg-muted/40 cursor-pointer"
+                      onClick={() => setExpandedAd(expandedAd === item.ads ? null : item.ads)}
+                    >
+                      <TableCell className="sticky left-0 bg-card z-10 font-medium text-sm">
+                        <div className="flex items-center gap-2">
+                          {item.thumbnailUrl && (
+                            <img
+                              src={item.thumbnailUrl}
+                              alt=""
+                              className="w-8 h-8 rounded object-cover shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          )}
+                          <span className="line-clamp-1 flex-1 min-w-0">{item.displayName}</span>
+                          {expandedAd === item.ads
+                            ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          }
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {item.campanhas.map((camp) => (
+                            <Badge
+                              key={camp}
+                              variant="outline"
+                              className="text-[10px] truncate max-w-[100px]"
+                            >
+                              {camp.split('_').slice(0, 2).join(' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">{item.totalDays}</TableCell>
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        {formatCurrency(item.totalSpend)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {formatNumber(item.totalImpressions)}
+                      </TableCell>
+                      <TableCell>
+                        <ProgressBar
+                          value={item.avgHookRate}
+                          max={50}
+                          color={item.avgHookRate >= 25 ? '#10B981' : item.avgHookRate >= 15 ? '#F59E0B' : '#EF4444'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <ProgressBar
+                          value={item.avgHoldRate}
+                          max={50}
+                          color={item.avgHoldRate >= 30 ? '#10B981' : item.avgHoldRate >= 20 ? '#F59E0B' : '#EF4444'}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {formatPercent(item.avgCompletionRate)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">{item.avgWatchTime.toFixed(0)}s</TableCell>
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        {formatNumber(item.totalLeads)}
+                      </TableCell>
+                      <TableCell className={cn('text-right text-sm font-medium tabular-nums', getCplColor(item.avgCpl))}>
+                        {item.totalLeads > 0 ? formatCurrency(item.avgCpl) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        {item.mql > 0 ? formatNumber(item.mql) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        {item.callRealizada > 0 ? formatNumber(item.callRealizada) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium text-emerald-400 tabular-nums">
+                        {item.vendas > 0 ? formatNumber(item.vendas) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        {item.callAgendada > 0 ? formatNumber(item.callAgendada) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium tabular-nums">
+                        {item.custoMql > 0 ? formatCurrency(item.custoMql) : '-'}
+                      </TableCell>
+                      <TableCell className={cn('text-right text-sm font-medium tabular-nums', item.cpa === 0 ? 'text-muted-foreground' : item.cpa <= 500 ? 'text-success' : item.cpa <= 800 ? 'text-warning' : 'text-destructive')}>
+                        {item.vendas > 0 ? formatCurrency(item.cpa) : '-'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.funnelStage && (
                           <Badge
-                            key={camp}
-                            variant="outline"
-                            className="text-[10px] truncate max-w-[100px]"
+                            className="text-white border-0 text-[9px]"
+                            style={{ backgroundColor: FUNNEL_STAGE_CONFIG[item.funnelStage].color }}
                           >
-                            {camp.split('_').slice(0, 2).join(' ')}
+                            {FUNNEL_STAGE_CONFIG[item.funnelStage].label}
                           </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right text-sm">{item.totalDays}</TableCell>
-                    <TableCell className="text-right text-sm font-medium">
-                      {formatCurrency(item.totalSpend)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm">
-                      {formatNumber(item.totalImpressions)}
-                    </TableCell>
-                    <TableCell>
-                      <ProgressBar
-                        value={item.avgHookRate}
-                        max={50}
-                        color={item.avgHookRate >= 25 ? '#10B981' : item.avgHookRate >= 15 ? '#F59E0B' : '#EF4444'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <ProgressBar
-                        value={item.avgHoldRate}
-                        max={50}
-                        color={item.avgHoldRate >= 30 ? '#10B981' : item.avgHoldRate >= 20 ? '#F59E0B' : '#EF4444'}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right text-sm">
-                      {formatPercent(item.avgCompletionRate)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm">{item.avgWatchTime.toFixed(0)}s</TableCell>
-                    <TableCell className="text-right text-sm font-medium">
-                      {formatNumber(item.totalLeads)}
-                    </TableCell>
-                    <TableCell className={cn('text-right text-sm font-medium', getCplColor(item.avgCpl))}>
-                      {item.totalLeads > 0 ? formatCurrency(item.avgCpl) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right text-sm font-medium">
-                      {item.mql > 0 ? formatNumber(item.mql) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right text-sm font-medium">
-                      {item.callRealizada > 0 ? formatNumber(item.callRealizada) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right text-sm font-medium text-emerald-400">
-                      {item.vendas > 0 ? formatNumber(item.vendas) : '-'}
-                    </TableCell>
-                    <TableCell className={cn('text-right text-sm font-medium', item.cpa === 0 ? 'text-muted-foreground' : item.cpa <= 500 ? 'text-success' : item.cpa <= 800 ? 'text-warning' : 'text-destructive')}>
-                      {item.vendas > 0 ? formatCurrency(item.cpa) : '-'}
-                    </TableCell>
-                  </TableRow>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                    {expandedAd === item.ads && (
+                      <TableRow key={`${item.ads}-detail`}>
+                        <TableCell colSpan={18} className="p-0">
+                          <AnimatePresence>
+                            <CreativeExpandedDetail creative={item} />
+                          </AnimatePresence>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 ))
               )}
             </TableBody>

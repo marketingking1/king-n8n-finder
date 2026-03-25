@@ -197,6 +197,19 @@ export function CreativeKPICards({ kpis, isLoading }: CreativeKPICardsProps) {
         colorClass={kpis.avgCpa === 0 ? 'text-muted-foreground' : kpis.avgCpa <= 500 ? 'text-success' : kpis.avgCpa <= 800 ? 'text-warning' : 'text-destructive'}
         index={13}
       />
+      <KPICard
+        title="Custo MQL"
+        value={kpis.avgCustoMql > 0 ? formatCurrency(kpis.avgCustoMql) : '—'}
+        icon={<DollarSign className="h-4 w-4" />}
+        colorClass="text-blue-400"
+        index={14}
+      />
+      <KPICard
+        title="Calls Agendadas"
+        value={formatNumber(kpis.totalCallAgendada)}
+        icon={<Phone className="h-4 w-4" />}
+        index={15}
+      />
     </div>
   );
 }

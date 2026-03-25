@@ -204,6 +204,17 @@ export const aggregateByCreative = (rows: VideoCreativeRow[]): AggregatedCreativ
       callRealizada: 0,
       vendas: 0,
       cpa: 0,
+      // Supabase enrichment — populated by enrichWithSupabaseData
+      thumbnailUrl: null,
+      videoUrl: null,
+      transcription: null,
+      funnelStage: null,
+      custoMql: 0,
+      callAgendada: 0,
+      totalLeadsCrm: 0,
+      contrato: 0,
+      analysis: '',
+      hasSupabaseData: false,
     };
   }).sort((a, b) => b.totalSpend - a.totalSpend);
 };
@@ -247,6 +258,8 @@ export const calculateCreativeKPIs = (rows: VideoCreativeRow[]): CreativeKPIs =>
     totalCallRealizada: 0,
     totalVendas: 0,
     avgCpa: 0,
+    totalCallAgendada: 0,
+    avgCustoMql: 0,
   };
 };
 

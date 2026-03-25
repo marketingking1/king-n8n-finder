@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { VideoOff, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useFilteredCreativeData } from '@/hooks/useCreativeData';
+import { useCreativeEnrichment } from '@/hooks/useCreativeEnrichment';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ChannelFunnelData } from '@/hooks/useFunnelByChannel';
-import type { AggregatedCreative, CreativeKPIs } from '@/types/creative';
+import type { AggregatedCreative, CreativeKPIs, SupabaseEnrichmentData } from '@/types/creative';
 import {
   CreativeKPICards,
   CreativeRetentionFunnel,
@@ -82,13 +83,70 @@ function enrichWithFunnelData(
   });
 }
 
+function generateAnalysis(c: AggregatedCreative): string {
+  const parts: string[] = [];
+  if (c.avgHookRate > 35) parts.push(`Hook rate excepcional (${c.avgHookRate.toFixed(1)}%).`);
+  else if (c.avgHookRate > 20) parts.push(`Bom hook rate (${c.avgHookRate.toFixed(1)}%).`);
+  if (c.avgHoldRate > 30) parts.push(`Hold rate forte (${c.avgHoldRate.toFixed(1)}%).`);
+  if (c.mql > 0 && c.totalLeadsCrm > 0) {
+    const mqlRate = (c.mql / c.totalLeadsCrm) * 100;
+    if (mqlRate > 20) parts.push(`Taxa MQL alta (${mqlRate.toFixed(1)}%).`);
+    else if (mqlRate > 8) parts.push(`Boa qualificação (${mqlRate.toFixed(1)}% MQL).`);
+  }
+  if (c.vendas > 2) parts.push(`${c.vendas} vendas diretas.`);
+  if (c.custoMql > 0 && c.custoMql < 50) parts.push(`Custo MQL acessível (R$${c.custoMql.toFixed(2)}).`);
+  if (c.cpa > 0 && c.cpa < 500) parts.push(`CPA de R$${c.cpa.toFixed(2)}.`);
+  if (c.avgCpl > 0 && c.avgCpl < 7) parts.push(`CPL eficiente (R$${c.avgCpl.toFixed(2)}).`);
+  if (c.totalLeads > 500) parts.push(`Alto volume (${c.totalLeads} leads).`);
+  return parts.length > 0 ? parts.join(' ') : '';
+}
+
+function enrichWithSupabaseData(
+  aggregated: AggregatedCreative[],
+  enrichmentMap: Map<string, SupabaseEnrichmentData>
+): AggregatedCreative[] {
+  if (enrichmentMap.size === 0) return aggregated;
+
+  return aggregated.map(creative => {
+    const key = creative.ads.toLowerCase().trim();
+    const enrichment = enrichmentMap.get(key);
+
+    if (!enrichment) return creative;
+
+    const updated = { ...creative };
+    updated.thumbnailUrl = enrichment.thumbnailUrl;
+    updated.videoUrl = enrichment.videoUrl;
+    updated.transcription = enrichment.transcription;
+    updated.funnelStage = enrichment.funnelStage;
+    updated.hasSupabaseData = true;
+
+    // Replace proportional CRM with exact Supabase data
+    if (enrichment.mqls > 0 || enrichment.closedWon > 0 || enrichment.callAgendada > 0) {
+      updated.mql = enrichment.mqls;
+      updated.callRealizada = enrichment.callRealizada;
+      updated.vendas = enrichment.closedWon;
+      updated.callAgendada = enrichment.callAgendada;
+      updated.totalLeadsCrm = enrichment.totalLeadsCrm;
+      updated.contrato = enrichment.contrato;
+      updated.cpa = enrichment.closedWon > 0 ? creative.totalSpend / enrichment.closedWon : 0;
+      updated.custoMql = enrichment.mqls > 0 ? creative.totalSpend / enrichment.mqls : 0;
+    }
+
+    updated.analysis = generateAnalysis(updated);
+    return updated;
+  });
+}
+
 function enrichKPIs(kpis: CreativeKPIs | null, enrichedCreatives: AggregatedCreative[]): CreativeKPIs | null {
   if (!kpis) return null;
   const totalMql = enrichedCreatives.reduce((s, c) => s + c.mql, 0);
   const totalCallRealizada = enrichedCreatives.reduce((s, c) => s + c.callRealizada, 0);
   const totalVendas = enrichedCreatives.reduce((s, c) => s + c.vendas, 0);
+  const totalCallAgendada = enrichedCreatives.reduce((s, c) => s + c.callAgendada, 0);
   const avgCpa = totalVendas > 0 ? kpis.totalInvestimento / totalVendas : 0;
-  return { ...kpis, totalMql, totalCallRealizada, totalVendas, avgCpa };
+  const totalMqls = enrichedCreatives.reduce((s, c) => s + c.mql, 0);
+  const avgCustoMql = totalMqls > 0 ? kpis.totalInvestimento / totalMqls : 0;
+  return { ...kpis, totalMql, totalCallRealizada, totalVendas, avgCpa, totalCallAgendada, avgCustoMql };
 }
 
 export function CreativeAnalysis({ dateRange, campanhas = [], funnelData = [] }: CreativeAnalysisProps) {
@@ -99,10 +157,12 @@ export function CreativeAnalysis({ dateRange, campanhas = [], funnelData = [] }:
     campanhas: campanhas.length > 0 ? campanhas : undefined,
   });
 
-  // Enrich with funnel data
+  const { data: enrichmentMap = new Map(), isLoading: enrichmentLoading } = useCreativeEnrichment(dateRange);
+
+  // Enrich with funnel data (proportional), then override with Supabase exact data
   const enrichedAggregated = useMemo(
-    () => enrichWithFunnelData(aggregated, funnelData),
-    [aggregated, funnelData]
+    () => enrichWithSupabaseData(enrichWithFunnelData(aggregated, funnelData), enrichmentMap),
+    [aggregated, funnelData, enrichmentMap]
   );
 
   const enrichedKpis = useMemo(
