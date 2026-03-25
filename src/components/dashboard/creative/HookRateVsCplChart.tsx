@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
   ZAxis,
   Cell,
 } from 'recharts';
@@ -37,12 +38,24 @@ export function HookRateVsCplChart({ data, isLoading }: HookRateVsCplChartProps)
 
   const omittedCount = data.filter((c) => c.totalLeads === 0).length;
 
-  // Determine quadrant colors
+  // Compute axis upper bounds for ReferenceArea extents
+  const { xMax, yMax } = useMemo(() => {
+    if (chartData.length === 0) return { xMax: 40, yMax: 20 };
+    const maxHookRate = Math.max(...chartData.map((d) => d.hookRate));
+    const maxCpl = Math.max(...chartData.map((d) => d.cpl));
+    // Add 20% padding so reference areas extend beyond all data points
+    return {
+      xMax: Math.ceil(maxHookRate * 1.2),
+      yMax: Math.ceil(maxCpl * 1.2),
+    };
+  }, [chartData]);
+
+  // Determine quadrant colors based on Hook Rate (x) and CPL (y) thresholds
   const getPointColor = (hookRate: number, cpl: number) => {
-    if (hookRate >= 20 && cpl <= 10) return 'hsl(142, 76%, 36%)'; // Winner - green
-    if (hookRate < 20 && cpl > 10) return 'hsl(0, 84%, 60%)'; // Review - red
-    if (hookRate >= 20 && cpl > 10) return 'hsl(38, 92%, 50%)'; // Potential - yellow
-    return 'hsl(217, 91%, 60%)'; // Scale? - blue
+    if (hookRate >= 20 && cpl <= 10) return 'hsl(142, 76%, 36%)'; // Winner - green (high hook, low CPL)
+    if (hookRate < 20 && cpl > 10) return 'hsl(0, 84%, 60%)'; // Revisar - red (low hook, high CPL)
+    if (hookRate >= 20 && cpl > 10) return 'hsl(38, 92%, 50%)'; // Escalar - amber (high hook, high CPL)
+    return 'hsl(217, 91%, 60%)'; // Potencial - blue (low hook, low CPL)
   };
 
   if (isLoading) {
@@ -156,7 +169,80 @@ export function HookRateVsCplChart({ data, isLoading }: HookRateVsCplChartProps)
                   return null;
                 }}
               />
-              {/* Reference lines for quadrants */}
+              {/* Quadrant background areas with labels */}
+              {/* Bottom-left (data: low hook, high CPL) = "Revisar" - red */}
+              <ReferenceArea
+                x1={0}
+                x2={20}
+                y1={10}
+                y2={yMax}
+                fill="hsl(0, 84%, 60%)"
+                fillOpacity={0.04}
+                ifOverflow="hidden"
+                label={{
+                  value: 'Revisar',
+                  position: 'insideBottomLeft',
+                  fill: 'hsl(0, 84%, 60%)',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  opacity: 0.7,
+                }}
+              />
+              {/* Bottom-right (data: high hook, high CPL) = "Escalar" - amber */}
+              <ReferenceArea
+                x1={20}
+                x2={xMax}
+                y1={10}
+                y2={yMax}
+                fill="hsl(38, 92%, 50%)"
+                fillOpacity={0.04}
+                ifOverflow="hidden"
+                label={{
+                  value: 'Escalar',
+                  position: 'insideBottomRight',
+                  fill: 'hsl(38, 92%, 50%)',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  opacity: 0.7,
+                }}
+              />
+              {/* Top-left (data: low hook, low CPL) = "Potencial" - blue */}
+              <ReferenceArea
+                x1={0}
+                x2={20}
+                y1={0}
+                y2={10}
+                fill="hsl(217, 91%, 60%)"
+                fillOpacity={0.04}
+                ifOverflow="hidden"
+                label={{
+                  value: 'Potencial',
+                  position: 'insideTopLeft',
+                  fill: 'hsl(217, 91%, 60%)',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  opacity: 0.7,
+                }}
+              />
+              {/* Top-right (data: high hook, low CPL) = "Winner" - green */}
+              <ReferenceArea
+                x1={20}
+                x2={xMax}
+                y1={0}
+                y2={10}
+                fill="hsl(142, 76%, 36%)"
+                fillOpacity={0.04}
+                ifOverflow="hidden"
+                label={{
+                  value: 'Winner',
+                  position: 'insideTopRight',
+                  fill: 'hsl(142, 76%, 36%)',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  opacity: 0.7,
+                }}
+              />
+              {/* Reference lines for quadrant boundaries */}
               <ReferenceLine
                 x={20}
                 stroke="hsl(var(--muted-foreground))"
@@ -184,19 +270,19 @@ export function HookRateVsCplChart({ data, isLoading }: HookRateVsCplChartProps)
         <div className="flex flex-wrap gap-4 mt-4 justify-center text-xs">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[hsl(142,76%,36%)]" />
-            <span className="text-muted-foreground">⭐ Winners</span>
+            <span className="text-muted-foreground">Winner</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[hsl(38,92%,50%)]" />
-            <span className="text-muted-foreground">Potencial</span>
+            <span className="text-muted-foreground">Escalar</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[hsl(217,91%,60%)]" />
-            <span className="text-muted-foreground">Escalar?</span>
+            <span className="text-muted-foreground">Potencial</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-[hsl(0,84%,60%)]" />
-            <span className="text-muted-foreground">⚠️ Revisar</span>
+            <span className="text-muted-foreground">Revisar</span>
           </div>
         </div>
       </CardContent>

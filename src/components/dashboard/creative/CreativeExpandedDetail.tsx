@@ -91,16 +91,16 @@ export function CreativeExpandedDetail({ creative }: CreativeExpandedDetailProps
             {creative.totalLeadsCrm > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
                 {[
-                  { label: 'Leads CRM', value: creative.totalLeadsCrm, color: '#64748b' },
-                  { label: 'MQLs', value: creative.mql, color: '#3b82f6' },
-                  { label: 'Calls Ag.', value: creative.callAgendada, color: '#8b5cf6' },
-                  { label: 'Calls Re.', value: creative.callRealizada, color: '#f59e0b' },
-                  { label: 'Contratos', value: creative.contrato, color: '#06b6d4' },
-                  { label: 'Vendas', value: creative.vendas, color: '#22c55e' },
+                  { label: 'Leads CRM', value: creative.totalLeadsCrm, textClass: 'text-muted-foreground' },
+                  { label: 'MQLs', value: creative.mql, textClass: 'text-blue-400' },
+                  { label: 'Calls Ag.', value: creative.callAgendada, textClass: 'text-violet-400' },
+                  { label: 'Calls Re.', value: creative.callRealizada, textClass: 'text-amber-400' },
+                  { label: 'Contratos', value: creative.contrato, textClass: 'text-cyan-400' },
+                  { label: 'Vendas', value: creative.vendas, textClass: 'text-emerald-400' },
                 ].map((item) => (
                   <div key={item.label} className="p-2 rounded-md bg-card border border-border/30">
                     <p className="text-[9px] text-muted-foreground uppercase">{item.label}</p>
-                    <p className="font-mono text-sm font-bold" style={{ color: item.color }}>{item.value}</p>
+                    <p className={cn("font-mono text-sm font-bold tabular-nums", item.textClass)}>{item.value}</p>
                   </div>
                 ))}
               </div>
@@ -111,19 +111,19 @@ export function CreativeExpandedDetail({ creative }: CreativeExpandedDetailProps
               {creative.custoMql > 0 && (
                 <div className="p-2 rounded-md bg-card border border-border/30 text-center">
                   <p className="text-[9px] text-muted-foreground uppercase">Custo MQL</p>
-                  <p className="font-mono text-sm font-bold text-blue-400">{formatCurrency(creative.custoMql)}</p>
+                  <p className="font-mono text-sm font-bold tabular-nums text-blue-400">{formatCurrency(creative.custoMql)}</p>
                 </div>
               )}
               {creative.cpa > 0 && (
                 <div className="p-2 rounded-md bg-card border border-border/30 text-center">
                   <p className="text-[9px] text-muted-foreground uppercase">CPA</p>
-                  <p className="font-mono text-sm font-bold text-emerald-400">{formatCurrency(creative.cpa)}</p>
+                  <p className="font-mono text-sm font-bold tabular-nums text-emerald-400">{formatCurrency(creative.cpa)}</p>
                 </div>
               )}
               {creative.avgCpl > 0 && (
                 <div className="p-2 rounded-md bg-card border border-border/30 text-center">
                   <p className="text-[9px] text-muted-foreground uppercase">CPL</p>
-                  <p className={cn('font-mono text-sm font-bold', cplColor(creative.avgCpl))}>{formatCurrency(creative.avgCpl)}</p>
+                  <p className={cn('font-mono text-sm font-bold tabular-nums', cplColor(creative.avgCpl))}>{formatCurrency(creative.avgCpl)}</p>
                 </div>
               )}
             </div>

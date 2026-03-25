@@ -46,18 +46,27 @@ const getCplColor = (value: number) => {
   return 'text-destructive';
 };
 
-const ProgressBar = ({ value, max = 100, color }: { value: number; max?: number; color: string }) => (
+const ProgressBar = ({ value, max = 100, variant }: { value: number; max?: number; variant: 'success' | 'warning' | 'destructive' }) => (
   <div className="flex items-center gap-2 min-w-0">
     <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden min-w-[60px]">
       <div
         className="h-full rounded-full transition-all duration-300"
         style={{
           width: `${Math.min((value / max) * 100, 100)}%`,
-          backgroundColor: color,
+          backgroundColor: variant === 'success'
+            ? 'hsl(var(--success))'
+            : variant === 'warning'
+              ? 'hsl(var(--warning))'
+              : 'hsl(var(--destructive))',
         }}
       />
     </div>
-    <span className={cn("text-xs font-medium w-12 text-right", `text-[${color}]`)}>
+    <span className={cn(
+      "text-xs font-medium w-12 text-right tabular-nums",
+      variant === 'success' && 'text-success',
+      variant === 'warning' && 'text-warning',
+      variant === 'destructive' && 'text-destructive',
+    )}>
       {value.toFixed(1)}%
     </span>
   </div>
@@ -410,14 +419,14 @@ export function CreativeTable({ data, isLoading }: CreativeTableProps) {
                         <ProgressBar
                           value={item.avgHookRate}
                           max={50}
-                          color={item.avgHookRate >= 25 ? '#10B981' : item.avgHookRate >= 15 ? '#F59E0B' : '#EF4444'}
+                          variant={item.avgHookRate >= 25 ? 'success' : item.avgHookRate >= 15 ? 'warning' : 'destructive'}
                         />
                       </TableCell>
                       <TableCell>
                         <ProgressBar
                           value={item.avgHoldRate}
                           max={50}
-                          color={item.avgHoldRate >= 30 ? '#10B981' : item.avgHoldRate >= 20 ? '#F59E0B' : '#EF4444'}
+                          variant={item.avgHoldRate >= 30 ? 'success' : item.avgHoldRate >= 20 ? 'warning' : 'destructive'}
                         />
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">

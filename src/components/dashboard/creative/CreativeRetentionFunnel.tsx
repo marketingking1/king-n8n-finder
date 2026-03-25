@@ -117,6 +117,9 @@ export function CreativeRetentionFunnel({ data, isLoading }: CreativeRetentionFu
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-base lg:text-lg font-display">Funil de Retenção de Vídeo</CardTitle>
+        <p className="text-[10px] text-muted-foreground/50">
+          Impressões &rarr; Views 3s &rarr; 25% &rarr; 50% &rarr; 75% &rarr; Completos
+        </p>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -129,7 +132,8 @@ export function CreativeRetentionFunnel({ data, isLoading }: CreativeRetentionFu
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs lg:text-sm font-medium text-foreground">{stage.name}</span>
-                <div className="flex items-center gap-3">
+
+                <div className="flex items-center gap-4">
                   {index > 0 && funnelData[index - 1].value > 0 && (
                     <span className="text-[10px] text-muted-foreground/70">
                       {((stage.value / funnelData[index - 1].value) * 100).toFixed(1)}% do anterior
@@ -140,7 +144,7 @@ export function CreativeRetentionFunnel({ data, isLoading }: CreativeRetentionFu
                   </span>
                 </div>
               </div>
-              <div className="h-6 lg:h-8 bg-muted/30 rounded-md overflow-hidden">
+              <div className="h-8 lg:h-10 bg-muted/30 rounded-md overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(stage.value / maxValue) * 100}%` }}
