@@ -35,7 +35,7 @@ interface ComparisonRowProps {
 
 // Fetch historical data from Google Sheet (lovable_historico)
 async function fetchHistoricalData(): Promise<YoYData | null> {
-  const GOOGLE_API_KEY = 'AIzaSyAVTiqpacILT6HvKmGWGgnqqYfJrcucF7Y';
+  const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY || '';
   const SPREADSHEET_ID = '1qS646MJtNvxmMDRMTrFQqX6CKtPJRItbhd0t6stb1HM';
   const SHEET_NAME = 'lovable_historico';
   const range = `${SHEET_NAME}!A:O`;
