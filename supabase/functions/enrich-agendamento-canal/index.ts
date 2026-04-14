@@ -17,13 +17,49 @@ function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 30000):
 }
 
 // Tag -> Canal mapping
+// Ordem importa: padrões mais específicos antes dos mais genéricos
 function tagToCanal(tagName: string): string | null {
-  const t = tagName.toLowerCase();
+  const t = tagName.toLowerCase().trim();
+
+  // Influenciador — qualquer tag começando/contendo "influencer"/"influenciador"
+  if (t.includes('influencer') || t.includes('influenciador') || t.includes('iinfluencer')) return 'Influenciador';
+
+  // Meta Ads
   if (t.includes('cadastro_meta') || t.includes('meta_ads') || t === 'meta ads') return 'Meta Ads';
-  if (t.includes('linkedin') || t.includes('mql + linkedin') || t.includes('mql, linkedin')) return 'LinkedIn';
+
+  // Google Ads
   if (t.includes('google ads') || t.includes('mql + google ads') || t.includes('mql, google ads')) return 'Google Ads';
-  if (t.includes('orgânico') || t.includes('organico') || t.includes('seo') || t.includes('lead organico') || t.includes('teste nivelamento')) return 'Orgânico';
-  if (t.includes('indicação') || t.includes('indicacao')) return 'Indicação';
+
+  // LinkedIn (inclui Social Selling que é outbound LinkedIn)
+  if (t.includes('linkedin') || t.includes('mql + linkedin') || t.includes('mql, linkedin') || t.includes('social selling')) return 'LinkedIn';
+
+  // Indicação (inclui ex-aluno)
+  if (t.includes('indicação') || t.includes('indicacao') || t.includes('ex-aluno') || t.includes('ex aluno')) return 'Indicação';
+
+  // TikTok
+  if (t.includes('tiktok') || t === 'tik tok') return 'TikTok';
+
+  // YouTube
+  if (t.includes('youtube') || t === 'you tube') return 'YouTube';
+
+  // Email Marketing
+  if (t.includes('email_marketing') || t.includes('email marketing') || t === 'email') return 'Email Marketing';
+
+  // SMS
+  if (t === 'sms' || t.includes('sms ')) return 'SMS';
+
+  // Orgânico (catch-all para canais orgânicos)
+  if (
+    t.includes('orgânico') || t.includes('organico') ||
+    t.includes('seo') ||
+    t.includes('lead organico') ||
+    t.includes('teste nivelamento') ||
+    t === 'insta' || t === 'instagram' ||
+    t === 'org' ||
+    t === 'live' || t === 'stories' ||
+    t === 'landing page'
+  ) return 'Orgânico';
+
   return null;
 }
 

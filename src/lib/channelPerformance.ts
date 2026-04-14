@@ -47,14 +47,20 @@ export async function fetchChannelSalesFromPlatform(
 }
 
 // Canal canônico para casar nomes da tabela_objetivo (mídia paga) com os retornos da RPC.
+// Mantém os mesmos rótulos usados pela RPC get_funnel_by_channel e pela edge enrich-agendamento-canal.
 export function canonicalChannelKey(canal: string): string {
   const c = (canal || '').toLowerCase().trim();
   if (!c) return 'Sem Canal';
+  if (c.includes('influencer') || c.includes('influenciador')) return 'Influenciador';
   if (c.includes('meta') || c.includes('facebook') || c.includes('instagram')) return 'Meta Ads';
   if (c.includes('google')) return 'Google Ads';
   if (c.includes('linkedin')) return 'LinkedIn';
-  if (c.includes('orgânic') || c.includes('organic')) return 'Orgânico';
-  if (c.includes('indica')) return 'Indicação';
+  if (c.includes('tiktok')) return 'TikTok';
+  if (c.includes('youtube')) return 'YouTube';
+  if (c.includes('email')) return 'Email Marketing';
+  if (c === 'sms' || c.startsWith('sms ')) return 'SMS';
+  if (c.includes('orgânic') || c.includes('organic') || c.includes('seo')) return 'Orgânico';
+  if (c.includes('indica') || c.includes('ex-aluno')) return 'Indicação';
   if (c.includes('não ident') || c.includes('nao ident') || c.includes('unknown')) return 'Não identificado';
   return canal;
 }
