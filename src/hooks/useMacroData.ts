@@ -4,11 +4,10 @@ import { MIN_DATE } from './useFilters';
 import { useGoogleSheetsData } from './useGoogleSheetsData';
 import {
   fetchMacro2026Data,
-  fetchLeadsCompradoresData,
   filterByDateRange,
-  filterBuyersByDateRange,
   SheetsMarketingRow
 } from '@/lib/googleSheets';
+import { fetchChannelSalesFromPlatform } from '@/lib/channelPerformance';
 import { groupByChannel } from '@/lib/metrics';
 import { DateRange, ChannelMetrics } from '@/types/dashboard';
 
@@ -72,10 +71,14 @@ export function useMacroData(dateRange: DateRange) {
     refetchIntervalInBackground: true,
   });
 
-  // Data from LEADS_COMPRADORES (real sales by channel)
-  const { data: buyersData, isLoading: isLoadingBuyers, error: buyersError } = useQuery({
-    queryKey: ['leads-compradores-data'],
-    queryFn: fetchLeadsCompradoresData,
+  // Sales-by-channel vindos da plataforma (Supabase RPC get_funnel_by_channel)
+  const { data: platformChannelData, isLoading: isLoadingBuyers, error: buyersError } = useQuery({
+    queryKey: [
+      'channel-sales-from-platform',
+      dateRange.from?.getTime() ?? null,
+      dateRange.to?.getTime() ?? null,
+    ],
+    queryFn: () => fetchChannelSalesFromPlatform(dateRange),
     staleTime: 0,
     gcTime: 2 * 60 * 1000,
     refetchOnMount: 'always',
@@ -255,15 +258,13 @@ export function useMacroData(dateRange: DateRange) {
     };
   }, [sheetsData, previousPeriod, prevMacro2026Data]);
 
-  // Calculate channel metrics combining paid media and buyer data
+  // Channel metrics: investimento (sheet tabela_objetivo) + vendas (Supabase RPC).
+  // platformChannelData já vem agregado no intervalo selecionado.
   const channelMetrics: ChannelMetrics[] = useMemo(() => {
     if (!sheetsData) return [];
     const filteredPaid = filterByDateRange(sheetsData.rows, dateRange.from, dateRange.to);
-    const filteredBuyers = buyersData
-      ? filterBuyersByDateRange(buyersData, dateRange.from, dateRange.to)
-      : [];
-    return groupByChannel(filteredPaid, filteredBuyers);
-  }, [sheetsData, buyersData, dateRange]);
+    return groupByChannel(filteredPaid, platformChannelData ?? []);
+  }, [sheetsData, platformChannelData, dateRange]);
 
   return {
     current,

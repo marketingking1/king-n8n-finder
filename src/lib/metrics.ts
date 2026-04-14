@@ -1,5 +1,6 @@
 import { MarketingData, AggregatedMetrics, CampaignMetrics, GroupMetrics, TimeSeriesData, FunnelData, Granularity, ChannelMetrics } from '@/types/dashboard';
-import { SheetsMarketingRow, BuyerRow } from '@/lib/googleSheets';
+import { SheetsMarketingRow } from '@/lib/googleSheets';
+import { ChannelSalesFromPlatform, canonicalChannelKey } from '@/lib/channelPerformance';
 import { format, isValid, parse, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -169,12 +170,13 @@ export function getCPAColor(cpa: number): 'success' | 'warning' | 'destructive' 
   return 'destructive';
 }
 
-// Group data by channel combining paid media and buyer data
+// Performance por Canal: combina mídia paga (tabela_objetivo) com vendas da
+// plataforma (Supabase RPC get_funnel_by_channel).
 export function groupByChannel(
   paidMediaRows: SheetsMarketingRow[],
-  buyerRows: BuyerRow[]
+  platformRows: ChannelSalesFromPlatform[]
 ): ChannelMetrics[] {
-  // 1. Agregar dados de mídia paga por canal (tabela_objetivo)
+  // 1. Agregar mídia paga por canal canônico
   const paidByChannel: Record<string, {
     investimento: number;
     impressoes: number;
@@ -183,7 +185,7 @@ export function groupByChannel(
   }> = {};
 
   for (const row of paidMediaRows) {
-    const canal = row.canal || 'Sem Canal';
+    const canal = canonicalChannelKey(row.canal || 'Sem Canal');
     if (!paidByChannel[canal]) {
       paidByChannel[canal] = { investimento: 0, impressoes: 0, cliques: 0, leads: 0 };
     }
@@ -193,28 +195,28 @@ export function groupByChannel(
     paidByChannel[canal].leads += row.leads;
   }
 
-  // 2. Agregar dados de vendas reais por canal (LEADS_COMPRADORES)
+  // 2. Agregar vendas por canal canônico (Supabase RPC)
   const salesByChannel: Record<string, {
     vendas: number;
     receita: number;
   }> = {};
 
-  for (const row of buyerRows) {
-    const canal = row.canal || 'Sem Canal';
+  for (const row of platformRows) {
+    const canal = canonicalChannelKey(row.canal);
     if (!salesByChannel[canal]) {
       salesByChannel[canal] = { vendas: 0, receita: 0 };
     }
-    salesByChannel[canal].vendas += 1;
-    salesByChannel[canal].receita += row.valorCompra;
+    salesByChannel[canal].vendas += row.vendas;
+    // Receita estimada via ticket médio — a RPC não retorna receita
+    salesByChannel[canal].receita += row.vendas * TICKET_MEDIO;
   }
 
-  // 3. Combinar: pegar todos os canais de ambas as fontes
+  // 3. União de canais
   const allChannels = new Set([
     ...Object.keys(paidByChannel),
     ...Object.keys(salesByChannel),
   ]);
 
-  // 4. Montar ChannelMetrics para cada canal
   const result: ChannelMetrics[] = [];
 
   for (const canal of allChannels) {
@@ -247,6 +249,5 @@ export function groupByChannel(
     });
   }
 
-  // Ordenar por receita desc (canais com mais receita primeiro)
   return result.sort((a, b) => b.receita - a.receita);
 }

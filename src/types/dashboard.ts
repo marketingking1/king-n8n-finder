@@ -78,9 +78,9 @@ export interface ChannelMetrics {
   ctr: number;
   cpc: number;
   cpl: number;
-  // De LEADS_COMPRADORES (vendas reais)
-  vendas: number;       // total de vendas reais (count de BuyerRow)
-  receita: number;      // sum do Valor da compra real
+  // De Supabase RPC get_funnel_by_channel (vendas reais por canal via Kommo/plataforma)
+  vendas: number;       // total de vendas no canal no período
+  receita: number;      // vendas * TICKET_MEDIO (receita estimada)
   ticketMedio: number;  // receita / vendas
   // Calculados na combinação
   cpa: number;          // investimento / vendas (0 se não tem investimento)
