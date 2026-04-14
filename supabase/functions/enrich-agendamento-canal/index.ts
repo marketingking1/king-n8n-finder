@@ -52,14 +52,11 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const kommoToken = Deno.env.get("KOMMO_ACCESS_TOKEN") ?? Deno.env.get("KOMMO_API_TOKEN");
-    const kommoUrlRaw = Deno.env.get("KOMMO_BASE_URL") || "https://kingoflanguages.kommo.com";
-    const kommoUrl = kommoUrlRaw.replace(/\/$/, "").endsWith("/api/v4")
-      ? kommoUrlRaw.replace(/\/$/, "")
-      : `${kommoUrlRaw.replace(/\/$/, "")}/api/v4`;
+    const kommoToken = Deno.env.get("KOMMO_API_TOKEN");
+    const kommoUrl = Deno.env.get("KOMMO_BASE_URL") || "https://kingoflanguages.kommo.com/api/v4";
 
     if (!kommoToken) {
-      return new Response(JSON.stringify({ error: "Missing KOMMO_ACCESS_TOKEN" }), {
+      return new Response(JSON.stringify({ error: "Missing KOMMO_API_TOKEN" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       });
