@@ -4,14 +4,17 @@ import { FilterState, Granularity, DateRange } from '@/types/dashboard';
 // Data mínima: 1 de Janeiro de 2026
 export const MIN_DATE = new Date(2026, 0, 1);
 
-// Sempre abre com o mês atual
+// Sempre abre com o mês atual INTEIRO (1o dia até último dia, incluindo aulas
+// agendadas para datas futuras dentro do mês). Mantém paridade com o dashboard
+// vis-o-comercial (FilterContext.tsx) que usa startOfMonth..endOfMonth.
 const now = new Date();
 const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 const defaultFrom = firstDayOfMonth < MIN_DATE ? MIN_DATE : firstDayOfMonth;
 
 const defaultDateRange: DateRange = {
   from: defaultFrom,
-  to: now,
+  to: lastDayOfMonth,
 };
 
 const defaultFilters: FilterState = {

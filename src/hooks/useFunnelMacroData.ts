@@ -24,11 +24,13 @@ function toDateStr(d: Date): string {
 }
 
 async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Promise<FunnelMacroData> {
-  // Fetch leads from kommo_leads (pipeline principal)
+  // Fetch leads from kommo_leads — pipelines do funil de vendas:
+  // 6919767 = Funil principal · 13461219 = Social Selling (Isabelle)
+  // Mantém paridade com vis-o-comercial (useFunnelData.ts:44).
   let leadsQuery = supabase
     .from('kommo_leads')
     .select('lead_id', { count: 'exact', head: true })
-    .eq('pipeline_id', 6919767);
+    .in('pipeline_id', [6919767, 13461219]);
 
   // Usar startOfDay/endOfDay para garantir que o filtro de timestamp
   // capture o dia inteiro (date picker retorna meia-noite, que em UTC-3 corta o dia)
