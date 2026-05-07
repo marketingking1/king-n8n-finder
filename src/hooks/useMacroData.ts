@@ -8,6 +8,7 @@ import {
   SheetsMarketingRow
 } from '@/lib/googleSheets';
 import { fetchChannelSalesFromPlatform } from '@/lib/channelPerformance';
+import { fetchPlatformCounts } from '@/lib/platformCounts';
 import { groupByChannel } from '@/lib/metrics';
 import { DateRange, ChannelMetrics } from '@/types/dashboard';
 
@@ -71,6 +72,23 @@ export function useMacroData(dateRange: DateRange) {
     refetchIntervalInBackground: true,
   });
 
+  // Source of truth dos KPIs de funil (leads, mql, vendas, calls realizadas)
+  // vem da Plataforma/Supabase, NAO da planilha LOVABLE_HISTORICO_2026.
+  // A planilha continua usada para investimento, ticket medio e custo vendedor.
+  const { data: platformCounts, isLoading: isLoadingPlatformCounts } = useQuery({
+    queryKey: [
+      'platform-counts',
+      dateRange.from?.getTime() ?? null,
+      dateRange.to?.getTime() ?? null,
+    ],
+    queryFn: () => fetchPlatformCounts({ from: dateRange.from, to: dateRange.to }),
+    staleTime: 0,
+    gcTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
+  });
+
   // Sales-by-channel vindos da plataforma (Supabase RPC get_funnel_by_channel)
   const { data: platformChannelData, isLoading: isLoadingBuyers, error: buyersError } = useQuery({
     queryKey: [
@@ -130,42 +148,65 @@ export function useMacroData(dateRange: DateRange) {
     refetchInterval: 60 * 1000,
   });
 
+  // Platform counts for the PREVIOUS period
+  const { data: prevPlatformCounts } = useQuery({
+    queryKey: [
+      'platform-counts-prev',
+      previousPeriod?.from?.getTime() ?? null,
+      previousPeriod?.to?.getTime() ?? null,
+    ],
+    queryFn: () => fetchPlatformCounts({ from: previousPeriod!.from, to: previousPeriod!.to }),
+    enabled: !!previousPeriod,
+    staleTime: 0,
+    gcTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
+  });
+
   // Current period metrics - filtered by the selected date range
   const current = useMemo(() => {
-    if (!sheetsData || !macro2026Data) return undefined;
+    if (!sheetsData || !macro2026Data || !platformCounts) return undefined;
 
     // Investment metrics from tabela_objetivo (paid media) - filtered by selected date range
     const filteredSheets = filterByDateRange(sheetsData.rows, dateRange.from, dateRange.to);
     const investmentMetrics = calculateInvestmentMetrics(filteredSheets);
 
-    // Raw values from spreadsheet
+    // Investimento, Ticket Medio e Custo Vendedor: planilha (campos que nao
+    // existem na plataforma / vem de mídia paga e operação comercial)
     const investimento = investmentMetrics.investimento;
-    const leads = macro2026Data.totalLeads;
-    const mql = macro2026Data.totalMql;
-    const vendas = macro2026Data.totalVendas;
-    const faturamento = macro2026Data.faturamento;
-    const custoVendedor = macro2026Data.custoVendedor; // Da planilha LOVABLE_HISTORICO_2026
+    const custoVendedor = macro2026Data.custoVendedor;
+    // Ticket medio = faturamento / vendas DA PLANILHA (preserva valor unitario
+    // que ja considera planos diferentes); aplicado a vendas reais abaixo.
+    const ticketMedioPlanilha =
+      macro2026Data.totalVendas > 0 ? macro2026Data.faturamento / macro2026Data.totalVendas : 0;
 
-    // ALWAYS calculate derived metrics internally from raw values
+    // Leads, MQL, Vendas: PLATAFORMA (source of truth, igual vis-o-comercial)
+    const leads = platformCounts.leads;
+    const mql = platformCounts.mql;
+    const vendas = platformCounts.vendas;
+
+    // Faturamento recalculado: vendas reais (Plataforma) * ticket medio (Planilha)
+    const faturamento = vendas * ticketMedioPlanilha;
+
+    // Derived metrics — calculados sobre vendas/leads/mql canonicos
     const cpa = vendas > 0 ? investimento / vendas : 0;
     const cpl = leads > 0 ? investimento / leads : 0;
     const cpmql = mql > 0 ? investimento / mql : 0;
     const roas = investimento > 0 ? faturamento / investimento : 0;
     const roi = investimento > 0 ? ((faturamento - investimento) / investimento) * 100 : 0;
-    const ticketMedio = vendas > 0 ? faturamento / vendas : 0;
+    const ticketMedio = ticketMedioPlanilha;
     const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0; // Lead→Venda
     const taxaConversaoMqlVenda = mql > 0 ? (vendas / mql) * 100 : 0; // MQL→Venda
 
     // CAC = CPA + (Custo Vendedor / Vendas)
-    // O custoVendedor da planilha é o total, então dividimos por vendas para obter o unitário
     const custoVendedorUnitario = vendas > 0 ? custoVendedor / vendas : 0;
     const cac = cpa + custoVendedorUnitario;
 
-    // Debug logging (will only show in dev)
     if ((import.meta as any)?.env?.DEV) {
-      console.debug('[MacroData] Raw values - Investimento:', investimento, 'Vendas:', vendas, 'Leads:', leads, 'MQL:', mql, 'Faturamento:', faturamento);
-      console.debug('[MacroData] Custo Vendedor from sheet:', custoVendedor, 'Unitário:', custoVendedorUnitario);
-      console.debug('[MacroData] Calculated - CPA:', cpa, 'CAC:', cac, 'ROAS:', roas, 'Taxa Lead→MQL:', taxaConversao);
+      console.debug('[MacroData] PLATFORM Vendas:', vendas, 'Leads:', leads, 'MQL:', mql);
+      console.debug('[MacroData] SHEET Investimento:', investimento, 'TicketMedio:', ticketMedioPlanilha, 'CustoVendedor:', custoVendedor);
+      console.debug('[MacroData] Calculado - Faturamento:', faturamento, 'CPA:', cpa, 'CAC:', cac, 'ROAS:', roas);
     }
 
     return {
@@ -188,7 +229,7 @@ export function useMacroData(dateRange: DateRange) {
       taxaConversao,
       taxaConversaoMqlVenda,
     };
-  }, [sheetsData, macro2026Data, dateRange]);
+  }, [sheetsData, macro2026Data, platformCounts, dateRange]);
 
   // Previous period metrics - now with REAL data from LOVABLE_HISTORICO_2026
   const previous = useMemo(() => {
@@ -201,26 +242,33 @@ export function useMacroData(dateRange: DateRange) {
     const investimento = investmentMetrics.investimento;
 
     // Use real data from LOVABLE_HISTORICO_2026 for the previous period
-    if (prevMacro2026Data) {
-      const leads = prevMacro2026Data.totalLeads;
-      const mql = prevMacro2026Data.totalMql;
-      const vendas = prevMacro2026Data.totalVendas;
-      const faturamento = prevMacro2026Data.faturamento;
+    if (prevMacro2026Data && prevPlatformCounts) {
       const custoVendedor = prevMacro2026Data.custoVendedor;
+      const ticketMedioPlanilha =
+        prevMacro2026Data.totalVendas > 0
+          ? prevMacro2026Data.faturamento / prevMacro2026Data.totalVendas
+          : 0;
+
+      // Plataforma (source of truth)
+      const leads = prevPlatformCounts.leads;
+      const mql = prevPlatformCounts.mql;
+      const vendas = prevPlatformCounts.vendas;
+
+      const faturamento = vendas * ticketMedioPlanilha;
 
       const cpa = vendas > 0 ? investimento / vendas : 0;
       const cpl = leads > 0 ? investimento / leads : 0;
       const cpmql = mql > 0 ? investimento / mql : 0;
       const roas = investimento > 0 ? faturamento / investimento : 0;
       const roi = investimento > 0 ? ((faturamento - investimento) / investimento) * 100 : 0;
-      const ticketMedio = vendas > 0 ? faturamento / vendas : 0;
+      const ticketMedio = ticketMedioPlanilha;
       const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
       const taxaConversaoMqlVenda = mql > 0 ? (vendas / mql) * 100 : 0;
       const custoVendedorUnitario = vendas > 0 ? custoVendedor / vendas : 0;
       const cac = cpa + custoVendedorUnitario;
 
       if ((import.meta as any)?.env?.DEV) {
-        console.debug('[MacroData:Prev] Investimento:', investimento, 'Vendas:', vendas, 'Leads:', leads, 'Faturamento:', faturamento);
+        console.debug('[MacroData:Prev] Investimento:', investimento, 'Vendas (Plat):', vendas, 'Leads (Plat):', leads, 'Faturamento:', faturamento);
       }
 
       return {
@@ -256,7 +304,7 @@ export function useMacroData(dateRange: DateRange) {
       conversoes: 0,
       receita: 0,
     };
-  }, [sheetsData, previousPeriod, prevMacro2026Data]);
+  }, [sheetsData, previousPeriod, prevMacro2026Data, prevPlatformCounts]);
 
   // Channel metrics: investimento (sheet tabela_objetivo) + vendas (Supabase RPC).
   // platformChannelData já vem agregado no intervalo selecionado.
@@ -270,7 +318,7 @@ export function useMacroData(dateRange: DateRange) {
     current,
     previous,
     channelMetrics,
-    isLoading: isLoadingSheets || isLoadingMacro || isLoadingBuyers,
+    isLoading: isLoadingSheets || isLoadingMacro || isLoadingBuyers || isLoadingPlatformCounts,
     error: sheetsError || macroError || buyersError,
   };
 }
