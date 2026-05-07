@@ -88,25 +88,36 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const kommoToken = Deno.env.get("KOMMO_API_TOKEN");
-    const kommoUrl = Deno.env.get("KOMMO_BASE_URL") || "https://kingoflanguages.kommo.com/api/v4";
+    const kommoToken = Deno.env.get("KOMMO_ACCESS_TOKEN") ?? Deno.env.get("KOMMO_API_TOKEN");
+    const kommoUrlRaw = Deno.env.get("KOMMO_BASE_URL") || "https://kingoflanguages.kommo.com";
+    const kommoUrl = kommoUrlRaw.replace(/\/$/, "").endsWith("/api/v4")
+      ? kommoUrlRaw.replace(/\/$/, "")
+      : `${kommoUrlRaw.replace(/\/$/, "")}/api/v4`;
 
     if (!kommoToken) {
-      return new Response(JSON.stringify({ error: "Missing KOMMO_API_TOKEN" }), {
+      return new Response(JSON.stringify({ error: "Missing KOMMO_ACCESS_TOKEN" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       });
     }
 
+    const startedAt = Date.now();
+    const MAX_ELAPSED_MS = 110_000;
+    const MAX_RECORDS = 250;
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse optional params
     let mesFilter: string | null = null;
+    let recordLimit = MAX_RECORDS;
     try {
       const body = await req.json();
       if (body.mes && body.ano) {
         const m = String(body.mes).padStart(2, '0');
         mesFilter = `${body.ano}-${m}`;
+      }
+      if (typeof body.limit === "number" && body.limit > 0) {
+        recordLimit = Math.min(body.limit, 1000);
       }
     } catch {
       // No body — default to current month
@@ -115,11 +126,13 @@ Deno.serve(async (req: Request) => {
       mesFilter = `${now.getFullYear()}-${m}`;
     }
 
-    // 1. Fetch agendamentos where canal IS NULL
+    // 1. Fetch agendamentos where canal IS NULL (newest first, capped per run)
     let query = supabase
       .from("Dados_Agendamento_Plataforma")
       .select("id, sync_kommo_lead_id, telefone, email, nome")
-      .is("canal", null);
+      .is("canal", null)
+      .order("dataAulaExperimental", { ascending: false })
+      .limit(recordLimit);
 
     if (mesFilter) {
       const startDate = `${mesFilter}-01`;
@@ -138,7 +151,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const rows = agendamentos as AgendamentoRow[];
-    const stats = { total: rows.length, kommo_batch: 0, kommo_search: 0, leads_fallback: 0, no_match: 0 };
+    const stats = {
+      total: rows.length,
+      kommo_batch: 0,
+      kommo_search: 0,
+      leads_fallback: 0,
+      no_match: 0,
+      timed_out_in_search: false,
+      search_processed: 0,
+    };
 
     // ============================================
     // BATCH 1: Kommo API by sync_kommo_lead_id
@@ -224,6 +245,12 @@ Deno.serve(async (req: Request) => {
     const kommoSearchUpdates: { id: number; canal: string }[] = [];
 
     for (const row of pendingWithoutKommo) {
+      if (Date.now() - startedAt > MAX_ELAPSED_MS) {
+        stats.timed_out_in_search = true;
+        break;
+      }
+      stats.search_processed++;
+
       const searchQuery = row.email || row.nome;
       if (!searchQuery) continue;
 

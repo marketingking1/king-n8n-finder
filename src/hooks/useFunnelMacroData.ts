@@ -6,6 +6,13 @@ export interface FunnelMacroData {
   leads: number;
   callAgendada: number;
   callRealizada: number;
+  /**
+   * Vendas operacionais vindas da plataforma (Dados_Agendamento_Plataforma.atualizacao = 'FECHADO').
+   * Espelha o número canônico do dev: API King /webhook/dados-alunos-marcados statusFechamento=FECHADO.
+   * Nota: pode divergir ~3% do Sheet "Vendas" por drift de sync — a verdade contábil do mês fica no Sheet.
+   */
+  venda: number;
+  noshow: number;
 }
 
 function toDateStr(d: Date): string {
@@ -70,15 +77,22 @@ async function fetchFunnelMacroData(dateRange: { from?: Date; to?: Date }): Prom
     page++;
   }
 
-  // Call agendada = every row in platform table
-  // Call realizada = PRESENCA or FECHADO
+  // Mapping canônico do campo `atualizacao` (último estado em atualizacoesStatus[] da API King):
+  //   MARCADO   = agendado, ainda não rolou
+  //   PRESENCA  = aluno compareceu (call realizada, sem fechar venda)
+  //   NOSHOW    = não compareceu
+  //   FECHADO   = compareceu E fechou venda (call realizada + venda)
+  //   CANCELADO = aula cancelada
+  // statusAula/statusFechamento estão "" desde 16/03/2026 (bug do sync) — não usar.
   const callAgendada = allPlatRows.length;
   const callRealizada = allPlatRows.filter(r => {
     const status = (r.atualizacao ?? '').toUpperCase();
     return status === 'PRESENCA' || status === 'FECHADO';
   }).length;
+  const venda = allPlatRows.filter(r => (r.atualizacao ?? '').toUpperCase() === 'FECHADO').length;
+  const noshow = allPlatRows.filter(r => (r.atualizacao ?? '').toUpperCase() === 'NOSHOW').length;
 
-  return { leads, callAgendada, callRealizada };
+  return { leads, callAgendada, callRealizada, venda, noshow };
 }
 
 export function useFunnelMacroData(dateRange: { from?: Date; to?: Date }) {

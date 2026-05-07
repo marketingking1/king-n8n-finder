@@ -205,10 +205,18 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, fun
   const cac = currentMetrics?.cac || 0;
   const roas = currentMetrics?.roas || 0;
 
-  // Leads, Calls: dados REAIS do Supabase (CRM/plataforma) — planilha desatualizada
+  // Leads, Calls, Vendas Plataforma: dados REAIS do Supabase (CRM/plataforma) — planilha desatualizada.
+  // Mapping canônico: `atualizacao` na tabela Dados_Agendamento_Plataforma é o source of truth
+  // (statusAula/statusFechamento estão "" desde 16/03/2026 por bug do sync — ver feedback_dados-agendamento-atualizacao).
+  // Ref canônica abr/2026 (API King): 2.298 agendamentos · 1.424 realizadas · 627 vendas.
   const leads = funnelData?.leads || 0;
   const callAgendada = funnelData?.callAgendada || 0;
   const callRealizada = funnelData?.callRealizada || 0;
+  const vendaPlataforma = funnelData?.venda || 0;
+  const noshow = funnelData?.noshow || 0;
+  const taxaRealizacao = callAgendada > 0 ? (callRealizada / callAgendada) * 100 : 0;
+  const taxaNoshow = callAgendada > 0 ? (noshow / callAgendada) * 100 : 0;
+  const taxaVenda = callRealizada > 0 ? (vendaPlataforma / callRealizada) * 100 : 0;
 
   // Taxas calculadas com leads do CRM (fonte real) + vendas da planilha
   const taxaConversao = leads > 0 ? (vendas / leads) * 100 : 0;
@@ -279,6 +287,46 @@ export function MacroKPICards({ currentMetrics, previousMetrics, sheetsData, fun
           title="Lead→Venda"
           value={formatPercent(taxaConversao)}
           colorType="conversion"
+          icon={<TrendingUp className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={5}
+        />
+      </div>
+
+      {/* Plataforma Funnel KPIs (source of truth: Dados_Agendamento_Plataforma.atualizacao) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 xl:gap-4">
+        <SecondaryKPICard
+          title="Agendamentos"
+          value={formatNumber(callAgendada)}
+          icon={<CalendarCheck className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={0}
+        />
+        <SecondaryKPICard
+          title="Calls Realizadas"
+          value={formatNumber(callRealizada)}
+          icon={<PhoneCall className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={1}
+        />
+        <SecondaryKPICard
+          title="Vendas (Plataforma)"
+          value={formatNumber(vendaPlataforma)}
+          icon={<ShoppingCart className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={2}
+        />
+        <SecondaryKPICard
+          title="Taxa Realização"
+          value={formatPercent(taxaRealizacao)}
+          icon={<Percent className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={3}
+        />
+        <SecondaryKPICard
+          title="Taxa No-show"
+          value={formatPercent(taxaNoshow)}
+          icon={<Percent className="h-4 w-4 xl:h-5 xl:w-5" />}
+          index={4}
+        />
+        <SecondaryKPICard
+          title="V/Realizada"
+          value={formatPercent(taxaVenda)}
           icon={<TrendingUp className="h-4 w-4 xl:h-5 xl:w-5" />}
           index={5}
         />
